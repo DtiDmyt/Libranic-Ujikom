@@ -17,7 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->middleware('role:peminjam')->name('dashboard');
 
     Route::get('admin/dashboard', function () {
-        return Inertia::render('dashboard');
+        return Inertia::render('admin/dashboard/dashboard');
     })->middleware('role:admin')->name('admin.dashboard');
 
     Route::get('petugas/dashboard', function () {
