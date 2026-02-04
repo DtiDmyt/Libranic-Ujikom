@@ -1,18 +1,559 @@
-import PagePlaceholder from '@/components/page-placeholder';
-import type { BreadcrumbItem } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useEffect, useState } from 'react';
+import {
+    CheckCircle2,
+    Eye,
+    Layers3,
+    PencilLine,
+    Plus,
+    Trash2,
+} from 'lucide-react';
+import Swal from 'sweetalert2';
+import AppLayout from '@/layouts/app-layout';
+import adminRoutes from '@/routes/admin';
+import type { BreadcrumbItem, SharedData } from '@/types';
+import {
+    alertError,
+    alertLoading,
+    alertSuccess,
+    closeAlert,
+} from '@/lib/alert';
+
+type Status = 'publik' | 'draft';
+
+type ItemRow = {
+    id: number;
+    nama_alat: string;
+    deskripsi_alat?: string | null;
+    kategori_jurusan: string;
+    kategori_alat?: string | null;
+    ruangan: string;
+    status: Status;
+    gambar_url?: string | null;
+    created_at?: string | null;
+};
+
+type CategoryOption = {
+    id: number;
+    nama: string;
+};
+
+type PageProps = SharedData & {
+    items: ItemRow[];
+    filters: {
+        search: string;
+        status: Status | 'semua';
+        kategori: number | null;
+    };
+    categories: CategoryOption[];
+    statistics: {
+        total: number;
+        publik: number;
+        draft: number;
+    };
+    flash?: {
+        success?: string;
+        error?: string;
+    };
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Admin Dashboard', href: '/admin/dashboard' },
+    { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
     { title: 'Manajemen Alat', href: '/admin/alat' },
-    { title: 'Data Alat', href: '/admin/alat' },
+    { title: 'Daftar Alat', href: '/admin/alat/data' },
 ];
 
+const statusLabels: Record<Status, string> = {
+    publik: 'Publik',
+    draft: 'Draft',
+};
+
+const statusStyles: Record<Status, string> = {
+    publik: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+    draft: 'bg-amber-100 text-amber-700 border border-amber-200',
+};
+
+const escapeHtml = (input: string) =>
+    input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
 export default function AdminDataAlatPage() {
+    const { items, filters, categories, statistics, flash } =
+        usePage<PageProps>().props;
+    const { status: statusFilter, kategori: kategoriFilter } = filters;
+    const { total, publik, draft } = statistics ?? {
+        total: 0,
+        publik: 0,
+        draft: 0,
+    };
+
+    const [selected, setSelected] = useState<number[]>([]);
+    const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
+
+    useEffect(() => {
+        setSearchTerm(filters.search ?? '');
+        setSelected((prev) =>
+            prev.filter((id) => items.some((item) => item.id === id)),
+        );
+    }, [filters.search, items]);
+
+    useEffect(() => {
+        if (flash?.success) {
+            alertSuccess(flash.success);
+        } else if (flash?.error) {
+            alertError(flash.error);
+        }
+    }, [flash?.success, flash?.error]);
+
+    useEffect(() => {
+        if (searchTerm === (filters.search ?? '')) {
+            return;
+        }
+
+        const timeout = window.setTimeout(() => {
+            visitWithFilters({ search: searchTerm });
+        }, 450);
+
+        return () => window.clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchTerm]);
+
+    const visitWithFilters = (overrides?: {
+        search?: string;
+        status?: Status | 'semua';
+        kategori?: number | null;
+    }) => {
+        const query: Record<string, unknown> = {
+            search: overrides?.search ?? searchTerm,
+            status: overrides?.status ?? statusFilter,
+        };
+
+        const kategoriValue =
+            overrides && 'kategori' in overrides
+                ? overrides.kategori
+                : kategoriFilter;
+
+        if (kategoriValue) {
+            query.kategori = kategoriValue;
+        }
+
+        router.get('/admin/alat/data', query, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    };
+
+    const toggleSelect = (id: number) => {
+        setSelected((prev) =>
+            prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [...prev, id],
+        );
+    };
+
+    const toggleSelectAll = () => {
+        setSelected((prev) =>
+            prev.length === items.length ? [] : items.map((item) => item.id),
+        );
+    };
+
+    const allSelected = items.length > 0 && selected.length === items.length;
+    const hasSelected = selected.length > 0;
+
+    const handleBulkDelete = () => {
+        if (!hasSelected) return;
+
+        Swal.fire({
+            title: 'Hapus Data',
+            text: 'Hapus semua data yang dipilih?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#1A3263',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            alertLoading('Sedang menghapus data terpilih...');
+            router.delete('/admin/alat/data/bulk-delete', {
+                data: { ids: selected },
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected([]);
+                    closeAlert();
+                    alertSuccess('Data terpilih berhasil dihapus.');
+                },
+                onError: () => {
+                    closeAlert();
+                    alertError('Gagal menghapus data terpilih.');
+                },
+            });
+        });
+    };
+
+    const handleBulkStatusChange = (status: Status) => {
+        if (!hasSelected) return;
+
+        alertLoading('Sedang memperbarui status data terpilih...');
+        router.patch(
+            '/admin/alat/data/bulk-status',
+            {
+                ids: selected,
+                status,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected([]);
+                    closeAlert();
+                    alertSuccess('Status data terpilih berhasil diperbarui.');
+                },
+                onError: () => {
+                    closeAlert();
+                    alertError('Gagal memperbarui status data terpilih.');
+                },
+            },
+        );
+    };
+
+    const handleSingleDelete = (id: number) => {
+        Swal.fire({
+            title: 'Hapus Data',
+            text: 'Yakin ingin menghapus data ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Hapus',
+            cancelButtonText: 'Batal',
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            alertLoading('Sedang menghapus data...');
+            router.delete(`/admin/alat/data/${id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected((prev) => prev.filter((item) => item !== id));
+                    closeAlert();
+                    alertSuccess('Data alat berhasil dihapus.');
+                },
+                onError: () => {
+                    closeAlert();
+                    alertError('Gagal menghapus data alat.');
+                },
+            });
+        });
+    };
+
+    const handleShowDetail = (item: ItemRow) => {
+        const detailHtml = `
+            <div class="space-y-2 text-left text-sm text-[#1A3263]">
+                <p><span class="font-semibold">Kategori Jurusan:</span> ${escapeHtml(item.kategori_jurusan)}</p>
+                <p><span class="font-semibold">Kategori Alat:</span> ${escapeHtml(item.kategori_alat ?? '-')}</p>
+                <p><span class="font-semibold">Ruangan:</span> ${escapeHtml(item.ruangan)}</p>
+                <p><span class="font-semibold">Status:</span> ${statusLabels[item.status]}</p>
+                <p><span class="font-semibold">Deskripsi:</span><br/>${escapeHtml(item.deskripsi_alat ?? '-')}</p>
+            </div>
+        `;
+
+        Swal.fire({
+            title: escapeHtml(item.nama_alat),
+            html: item.gambar_url
+                ? `<div class="mb-4 overflow-hidden rounded-2xl border border-[#E8E2DB]"><img src="${item.gambar_url}" alt="${escapeHtml(item.nama_alat)}" class="h-48 w-full object-cover" /></div>${detailHtml}`
+                : detailHtml,
+            confirmButtonText: 'Tutup',
+            customClass: { popup: 'rounded-2xl text-left' },
+        });
+    };
+
+    const summaryBadges = [
+        { label: 'Total', value: total, accent: 'bg-[#E6ECF8] text-[#1A3263]' },
+        {
+            label: 'Publik',
+            value: publik,
+            accent: 'bg-[#E6F4EA] text-[#1B5E20]',
+        },
+        { label: 'Draft', value: draft, accent: 'bg-[#FFF5DC] text-[#B45309]' },
+    ];
+
     return (
-        <PagePlaceholder
-            title="Data Alat"
-            description="Kelola daftar alat beserta informasi jurusan, kategori, dan stok yang tersedia."
-            breadcrumbs={breadcrumbs}
-        />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Daftar Alat" />
+            <div className="space-y-6 bg-[#F5F1EA] p-6">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                        Manajemen Alat
+                    </p>
+                    <h1 className="mt-2 text-3xl font-bold text-[#1A3263]">
+                        Daftar Alat
+                    </h1>
+                    <p className="mt-1 text-sm text-[#547792]">
+                        Kelola seluruh inventaris alat lengkap dengan kategori
+                        dan status publikasi.
+                    </p>
+                </div>
+
+                <div className="rounded-3xl border border-[#E8E2DB] bg-white shadow-sm">
+                    <div className="space-y-4 border-b border-[#E8E2DB] p-6">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Link
+                                href="/admin/alat/data/tambah"
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#547792]"
+                            >
+                                <Plus className="h-4 w-4" /> Tambah
+                            </Link>
+                            <button
+                                type="button"
+                                disabled={!hasSelected}
+                                onClick={handleBulkDelete}
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                    hasSelected
+                                        ? 'bg-[#F87171] text-white shadow-sm hover:bg-[#DC2626]'
+                                        : 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                }`}
+                            >
+                                <Trash2 className="h-4 w-4" /> Hapus
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!hasSelected}
+                                onClick={() => handleBulkStatusChange('publik')}
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                    hasSelected
+                                        ? 'bg-[#CDE8D6] text-[#1A3263] hover:bg-[#B5DBBF]'
+                                        : 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                }`}
+                            >
+                                <CheckCircle2 className="h-4 w-4" /> Publik
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!hasSelected}
+                                onClick={() => handleBulkStatusChange('draft')}
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                    hasSelected
+                                        ? 'bg-[#FFF5DC] text-[#B45309] hover:bg-[#FFE8AD]'
+                                        : 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                }`}
+                            >
+                                <Layers3 className="h-4 w-4" /> Draft
+                            </button>
+                            <div className="mt-3 w-full border-t border-dashed border-[#E8E2DB] md:hidden" />
+                            <div className="ml-auto text-xs font-semibold tracking-wide text-[#547792] uppercase">
+                                {hasSelected
+                                    ? `${selected.length} data dipilih`
+                                    : 'Pilih data untuk aksi cepat'}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                            {summaryBadges.map((badge) => (
+                                <div
+                                    key={badge.label}
+                                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${badge.accent}`}
+                                >
+                                    <span>{badge.label}</span>
+                                    <span className="text-base">
+                                        {badge.value}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-[#E8E2DB]">
+                            <thead className="text-left text-xs font-semibold tracking-wide text-[#547792] uppercase">
+                                <tr className="bg-[#E8E2DB]">
+                                    <th className="px-6 py-4">
+                                        <input
+                                            type="checkbox"
+                                            className="size-4 rounded border-[#1A3263] text-[#1A3263] focus:ring-[#1A3263]"
+                                            checked={allSelected}
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </th>
+                                    <th className="px-2 py-4">No</th>
+                                    <th className="px-4 py-4">Aksi</th>
+                                    <th className="px-4 py-4">Nama Alat</th>
+                                    <th className="px-4 py-4">
+                                        Kategori Jurusan
+                                    </th>
+                                    <th className="px-4 py-4">Kategori Alat</th>
+                                    <th className="px-4 py-4">Status</th>
+                                </tr>
+                                <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
+                                    <th className="px-6 py-3" />
+                                    <th className="px-2 py-3" />
+                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3">
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(event) =>
+                                                setSearchTerm(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-4 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
+                                            placeholder="Cari nama alat..."
+                                        />
+                                    </th>
+                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3">
+                                        <select
+                                            value={kategoriFilter ?? ''}
+                                            onChange={(event) =>
+                                                visitWithFilters({
+                                                    kategori: event.target.value
+                                                        ? Number(
+                                                              event.target
+                                                                  .value,
+                                                          )
+                                                        : null,
+                                                })
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                        >
+                                            <option value="">Semua</option>
+                                            {categories.map((category) => (
+                                                <option
+                                                    key={category.id}
+                                                    value={category.id}
+                                                >
+                                                    {category.nama}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </th>
+                                    <th className="px-4 py-3">
+                                        <select
+                                            value={statusFilter}
+                                            onChange={(event) =>
+                                                visitWithFilters({
+                                                    status: event.target
+                                                        .value as
+                                                        | Status
+                                                        | 'semua',
+                                                })
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                        >
+                                            <option value="semua">Semua</option>
+                                            <option value="publik">
+                                                Publik
+                                            </option>
+                                            <option value="draft">Draft</option>
+                                        </select>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#F0EBE2] bg-white">
+                                {items.map((item, index) => {
+                                    const checked = selected.includes(item.id);
+                                    return (
+                                        <tr
+                                            key={item.id}
+                                            className={`text-sm transition hover:bg-[#F8F6F1] ${
+                                                checked ? 'bg-[#FFF5DC]' : ''
+                                            }`}
+                                        >
+                                            <td className="px-6 py-4">
+                                                <input
+                                                    type="checkbox"
+                                                    className="size-4 rounded border-[#1A3263] text-[#1A3263] focus:ring-[#1A3263]"
+                                                    checked={checked}
+                                                    onChange={() =>
+                                                        toggleSelect(item.id)
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-2 py-4 font-semibold text-[#1A3263]">
+                                                {index + 1}
+                                            </td>
+                                            <td className="space-x-2 px-4 py-4 text-xs font-semibold">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleShowDetail(item)
+                                                    }
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#E0E7FF] px-2 py-1 text-[#1A3263] hover:bg-[#EEF2FF]"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" />{' '}
+                                                    Detail
+                                                </button>
+                                                <Link
+                                                    href={`/admin/alat/data/${item.id}/edit`}
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#1A3263] px-2 py-1 text-[#1A3263] hover:bg-[#EEF3FF]"
+                                                >
+                                                    <PencilLine className="h-3.5 w-3.5" />{' '}
+                                                    Edit
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleSingleDelete(
+                                                            item.id,
+                                                        )
+                                                    }
+                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#FEE2E2] px-2 py-1 text-[#B91C1C] hover:bg-[#FEE2E2]"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />{' '}
+                                                    Hapus
+                                                </button>
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                <p className="font-semibold">
+                                                    {item.nama_alat}
+                                                </p>
+                                                <p className="text-xs text-[#547792]">
+                                                    {item.ruangan}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {item.kategori_jurusan}
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {item.kategori_alat ?? '-'}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span
+                                                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[item.status]}`}
+                                                >
+                                                    <span
+                                                        className={`h-2 w-2 rounded-full ${item.status === 'publik' ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                                    />
+                                                    {statusLabels[item.status]}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {items.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={7}
+                                            className="px-6 py-10 text-center text-sm text-[#547792]"
+                                        >
+                                            Tidak ada data alat.
+                                        </td>
+                                    </tr>
+                                ) : null}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
+                        Menampilkan {items.length} data
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
     );
 }

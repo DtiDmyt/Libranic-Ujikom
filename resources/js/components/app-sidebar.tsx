@@ -21,6 +21,22 @@ import {
     Image,
     School,
     Library,
+    Code2,
+    Monitor,
+    Video,
+    Clapperboard,
+    Car,
+    Wrench,
+    Flame,
+    PackageOpen,
+    CheckCircle,
+    Clock,
+    History,
+    ClipboardCheck,
+    FileText,
+    Calendar,
+    SendHorizontal,
+    Archive,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavUser } from '@/components/nav-user';
@@ -85,17 +101,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     },
                     {
                         title: 'Manajemen Alat',
-                        icon: LibrarySquare,
+                        icon: PackageOpen,
                         subItems: [
                             {
-                                title: 'Data Alat',
-                                href: '/admin/alat',
-                                icon: BookOpen,
-                            },
-                            {
-                                title: 'Kategori Jurusan',
-                                href: '/admin/alat/kategori-jurusan',
-                                icon: School,
+                                title: 'Daftar Alat',
+                                href: '/admin/alat/data',
+                                icon: LibrarySquare,
                             },
                             {
                                 title: 'Kategori Alat',
@@ -106,7 +117,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     },
                     {
                         title: 'Manajemen Peminjaman',
-                        icon: ClipboardList,
+                        icon: ClipboardCheck,
                         subItems: [
                             {
                                 title: 'Data Peminjaman',
@@ -121,7 +132,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'Riwayat Peminjaman',
                                 href: '/admin/peminjaman/riwayat',
-                                icon: Library,
+                                icon: History,
                             },
                         ],
                     },
@@ -164,12 +175,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'Persetujuan Peminjaman',
                                 href: '/petugas/peminjaman/persetujuan',
-                                icon: ClipboardList,
+                                icon: CheckCircle,
                             },
                             {
                                 title: 'Daftar Peminjaman Aktif',
                                 href: '/petugas/peminjaman/aktif',
-                                icon: BookOpen,
+                                icon: Clock,
                             },
                         ],
                     },
@@ -180,12 +191,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'Konfirmasi Pengembalian',
                                 href: '/petugas/pengembalian/konfirmasi',
-                                icon: RotateCcw,
+                                icon: ClipboardCheck,
                             },
                             {
                                 title: 'Daftar Pengembalian',
                                 href: '/petugas/pengembalian/daftar',
-                                icon: Library,
+                                icon: Archive,
                             },
                         ],
                     },
@@ -196,12 +207,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'Laporan per Jurusan (Cetak)',
                                 href: '/petugas/laporan/jurusan',
-                                icon: FileSpreadsheet,
+                                icon: FileText,
                             },
                             {
                                 title: 'Laporan per Periode (Cetak)',
                                 href: '/petugas/laporan/periode',
-                                icon: FileSpreadsheet,
+                                icon: Calendar,
                             },
                         ],
                     },
@@ -227,7 +238,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'PPLG',
                                 href: '/daftar-alat/pplg',
-                                icon: BookOpen,
+                                icon: Code2,
                             },
                             {
                                 title: 'ANIM',
@@ -237,16 +248,21 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'BCF',
                                 href: '/daftar-alat/bcf',
-                                icon: FolderTree,
+                                icon: Clapperboard,
                             },
                             {
                                 title: 'TO',
                                 href: '/daftar-alat/to',
-                                icon: Library,
+                                icon: Car,
                             },
                             {
                                 title: 'TPFL',
                                 href: '/daftar-alat/tpfl',
+                                icon: Flame,
+                            },
+                            {
+                                title: 'UMUM',
+                                href: '/daftar-alat/umum',
                                 icon: School,
                             },
                         ],
@@ -258,12 +274,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'Ajukan Peminjaman',
                                 href: '/peminjaman/ajukan',
-                                icon: BookOpen,
+                                icon: SendHorizontal,
                             },
                             {
                                 title: 'Riwayat Peminjaman',
                                 href: '/peminjaman/riwayat',
-                                icon: Library,
+                                icon: History,
                             },
                         ],
                     },
@@ -279,7 +295,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             {
                                 title: 'Riwayat Pengembalian',
                                 href: '/pengembalian/riwayat',
-                                icon: Library,
+                                icon: Archive,
                             },
                         ],
                     },

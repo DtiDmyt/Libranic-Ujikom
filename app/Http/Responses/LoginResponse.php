@@ -20,7 +20,7 @@ class LoginResponse implements LoginResponseContract
             return new JsonResponse(['redirect' => $redirectTo], 200);
         }
 
-        return redirect()->intended($redirectTo);
+        return redirect()->to($redirectTo);
     }
 
     private function resolveRedirectPath(Request $request): string

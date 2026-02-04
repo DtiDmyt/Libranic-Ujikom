@@ -100,7 +100,7 @@ const JurusanTooltip = ({
     payload,
     label,
 }: TooltipProps<number, string>) => {
-    if (!active || !payload?.length) {
+    if (!active || !payload || payload.length === 0) {
         return null;
     }
 
@@ -131,7 +131,8 @@ export default function AdminDashboard() {
                         Selamat Datang Kembali! 👋
                     </h1>
                     <p className="text-sm text-slate-600">
-                        Kelola dan monitor seluruh aktivitas peminjaman alat dengan mudah
+                        Kelola dan monitor seluruh aktivitas peminjaman alat
+                        dengan mudah
                     </p>
                 </div>
 
