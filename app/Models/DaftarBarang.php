@@ -15,22 +15,24 @@ class DaftarBarang extends Model
 
     protected $fillable = [
         'nama_alat',
-        'deskripsi_alat',
         'kategori_jurusan',
         'kategori_alat_id',
         'ruangan',
+        'denda_keterlambatan',
         'status',
         'gambar_path',
     ];
 
     protected $casts = [
         'kategori_alat_id' => 'integer',
+        'denda_keterlambatan' => 'integer',
     ];
 
     protected $appends = ['gambar_url'];
 
     protected $attributes = [
         'status' => 'draft',
+        'denda_keterlambatan' => 0,
     ];
 
     protected $hidden = ['gambar_path'];

@@ -10,10 +10,10 @@ return new class extends Migration {
         Schema::create('daftarbarang', function (Blueprint $table) {
             $table->id();
             $table->string('nama_alat');
-            $table->text('deskripsi_alat')->nullable();
             $table->string('kategori_jurusan');
             $table->foreignId('kategori_alat_id')->constrained('kategori_alat')->cascadeOnDelete();
             $table->string('ruangan');
+            $table->unsignedBigInteger('denda_keterlambatan')->default(0);
             $table->enum('status', ['publik', 'draft'])->default('draft');
             $table->string('gambar_path')->nullable();
             $table->timestamps();

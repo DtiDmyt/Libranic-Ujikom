@@ -169,52 +169,20 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         icon: LayoutGrid,
                     },
                     {
-                        title: 'Peminjaman',
+                        title: 'Manajemen Pinjam-Kembali',
                         icon: ClipboardList,
                         subItems: [
                             {
-                                title: 'Persetujuan Peminjaman',
-                                href: '/petugas/peminjaman/persetujuan',
-                                icon: CheckCircle,
-                            },
-                            {
-                                title: 'Daftar Peminjaman Aktif',
-                                href: '/petugas/peminjaman/aktif',
+                                title: 'Daftar Peminjaman',
+                                href: '/petugas/peminjaman',
                                 icon: Clock,
                             },
                         ],
                     },
                     {
-                        title: 'Pengembalian',
-                        icon: RefreshCcw,
-                        subItems: [
-                            {
-                                title: 'Konfirmasi Pengembalian',
-                                href: '/petugas/pengembalian/konfirmasi',
-                                icon: ClipboardCheck,
-                            },
-                            {
-                                title: 'Daftar Pengembalian',
-                                href: '/petugas/pengembalian/daftar',
-                                icon: Archive,
-                            },
-                        ],
-                    },
-                    {
                         title: 'Laporan',
+                        href: '/petugas/laporan',
                         icon: FileSpreadsheet,
-                        subItems: [
-                            {
-                                title: 'Laporan per Jurusan (Cetak)',
-                                href: '/petugas/laporan/jurusan',
-                                icon: FileText,
-                            },
-                            {
-                                title: 'Laporan per Periode (Cetak)',
-                                href: '/petugas/laporan/periode',
-                                icon: Calendar,
-                            },
-                        ],
                     },
                 ],
             },
@@ -280,22 +248,6 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                                 title: 'Riwayat Peminjaman',
                                 href: '/peminjaman/riwayat',
                                 icon: History,
-                            },
-                        ],
-                    },
-                    {
-                        title: 'Pengembalian',
-                        icon: RefreshCcw,
-                        subItems: [
-                            {
-                                title: 'Ajukan Pengembalian',
-                                href: '/pengembalian/ajukan',
-                                icon: RotateCcw,
-                            },
-                            {
-                                title: 'Riwayat Pengembalian',
-                                href: '/pengembalian/riwayat',
-                                icon: Archive,
                             },
                         ],
                     },

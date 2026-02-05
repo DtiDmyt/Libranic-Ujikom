@@ -24,6 +24,7 @@ class DaftarBarangController extends Controller
             'search' => $request->string('search')->toString(),
             'status' => $request->string('status')->toString() ?: 'semua',
             'kategori' => $request->integer('kategori') ?: null,
+            'jurusan' => $request->string('jurusan')->toString() ?: null,
         ];
 
         $items = DaftarBarang::query()
@@ -31,15 +32,16 @@ class DaftarBarangController extends Controller
             ->when($filters['search'], fn($query, $search) => $query->where('nama_alat', 'like', '%' . $search . '%'))
             ->when($filters['status'] && $filters['status'] !== 'semua', fn($query) => $query->where('status', $filters['status']))
             ->when($filters['kategori'], fn($query) => $query->where('kategori_alat_id', $filters['kategori']))
+            ->when($filters['jurusan'], fn($query) => $query->where('kategori_jurusan', $filters['jurusan']))
             ->orderByDesc('created_at')
             ->get()
             ->map(fn(DaftarBarang $item) => [
                 'id' => $item->id,
                 'nama_alat' => $item->nama_alat,
-                'deskripsi_alat' => $item->deskripsi_alat,
                 'kategori_jurusan' => $item->kategori_jurusan,
                 'kategori_alat' => $item->kategoriAlat?->nama,
                 'ruangan' => $item->ruangan,
+                'denda_keterlambatan' => $item->denda_keterlambatan,
                 'status' => $item->status,
                 'gambar_url' => $item->gambar_url,
                 'created_at' => $item->created_at?->toIso8601String(),
@@ -76,6 +78,7 @@ class DaftarBarangController extends Controller
     public function store(StoreDaftarBarangRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['denda_keterlambatan'] = (int) ($data['denda_keterlambatan'] ?? 0);
         $data['gambar_path'] = $this->storeImage($request->file('gambar'));
 
         unset($data['gambar']);
@@ -95,10 +98,10 @@ class DaftarBarangController extends Controller
             'item' => [
                 'id' => $daftarBarang->id,
                 'nama_alat' => $daftarBarang->nama_alat,
-                'deskripsi_alat' => $daftarBarang->deskripsi_alat,
                 'kategori_jurusan' => $daftarBarang->kategori_jurusan,
                 'kategori_alat_id' => $daftarBarang->kategori_alat_id,
                 'ruangan' => $daftarBarang->ruangan,
+                'denda_keterlambatan' => $daftarBarang->denda_keterlambatan,
                 'status' => $daftarBarang->status,
                 'gambar_url' => $daftarBarang->gambar_url,
             ],
@@ -109,6 +112,7 @@ class DaftarBarangController extends Controller
     public function update(UpdateDaftarBarangRequest $request, DaftarBarang $daftarBarang): RedirectResponse
     {
         $data = $request->validated();
+        $data['denda_keterlambatan'] = (int) ($data['denda_keterlambatan'] ?? 0);
 
         $data['gambar_path'] = $this->storeImage(
             $request->file('gambar'),

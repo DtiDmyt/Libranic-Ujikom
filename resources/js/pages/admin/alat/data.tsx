@@ -24,11 +24,11 @@ type Status = 'publik' | 'draft';
 type ItemRow = {
     id: number;
     nama_alat: string;
-    deskripsi_alat?: string | null;
     kategori_jurusan: string;
     kategori_alat?: string | null;
     ruangan: string;
     status: Status;
+    denda_keterlambatan: number;
     gambar_url?: string | null;
     created_at?: string | null;
 };
@@ -44,13 +44,9 @@ type PageProps = SharedData & {
         search: string;
         status: Status | 'semua';
         kategori: number | null;
+        jurusan: string | null;
     };
     categories: CategoryOption[];
-    statistics: {
-        total: number;
-        publik: number;
-        draft: number;
-    };
     flash?: {
         success?: string;
         error?: string;
@@ -73,6 +69,8 @@ const statusStyles: Record<Status, string> = {
     draft: 'bg-amber-100 text-amber-700 border border-amber-200',
 };
 
+const jurusanOptions = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
+
 const escapeHtml = (input: string) =>
     input
         .replace(/&/g, '&amp;')
@@ -81,15 +79,21 @@ const escapeHtml = (input: string) =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 
+const rupiahFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+});
+
+const formatCurrency = (value: number) => rupiahFormatter.format(value);
+
 export default function AdminDataAlatPage() {
-    const { items, filters, categories, statistics, flash } =
-        usePage<PageProps>().props;
-    const { status: statusFilter, kategori: kategoriFilter } = filters;
-    const { total, publik, draft } = statistics ?? {
-        total: 0,
-        publik: 0,
-        draft: 0,
-    };
+    const { items, filters, categories, flash } = usePage<PageProps>().props;
+    const {
+        status: statusFilter,
+        kategori: kategoriFilter,
+        jurusan: jurusanFilter,
+    } = filters;
 
     const [selected, setSelected] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
@@ -126,6 +130,7 @@ export default function AdminDataAlatPage() {
         search?: string;
         status?: Status | 'semua';
         kategori?: number | null;
+        jurusan?: string | null;
     }) => {
         const query: Record<string, unknown> = {
             search: overrides?.search ?? searchTerm,
@@ -139,6 +144,15 @@ export default function AdminDataAlatPage() {
 
         if (kategoriValue) {
             query.kategori = kategoriValue;
+        }
+
+        const jurusanValue =
+            overrides && 'jurusan' in overrides
+                ? overrides.jurusan
+                : jurusanFilter;
+
+        if (jurusanValue) {
+            query.jurusan = jurusanValue;
         }
 
         router.get('/admin/alat/data', query, {
@@ -258,7 +272,7 @@ export default function AdminDataAlatPage() {
                 <p><span class="font-semibold">Kategori Alat:</span> ${escapeHtml(item.kategori_alat ?? '-')}</p>
                 <p><span class="font-semibold">Ruangan:</span> ${escapeHtml(item.ruangan)}</p>
                 <p><span class="font-semibold">Status:</span> ${statusLabels[item.status]}</p>
-                <p><span class="font-semibold">Deskripsi:</span><br/>${escapeHtml(item.deskripsi_alat ?? '-')}</p>
+                <p><span class="font-semibold">Denda per Hari:</span> ${escapeHtml(formatCurrency(item.denda_keterlambatan))}</p>
             </div>
         `;
 
@@ -271,16 +285,6 @@ export default function AdminDataAlatPage() {
             customClass: { popup: 'rounded-2xl text-left' },
         });
     };
-
-    const summaryBadges = [
-        { label: 'Total', value: total, accent: 'bg-[#E6ECF8] text-[#1A3263]' },
-        {
-            label: 'Publik',
-            value: publik,
-            accent: 'bg-[#E6F4EA] text-[#1B5E20]',
-        },
-        { label: 'Draft', value: draft, accent: 'bg-[#FFF5DC] text-[#B45309]' },
-    ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -351,20 +355,6 @@ export default function AdminDataAlatPage() {
                                     : 'Pilih data untuk aksi cepat'}
                             </div>
                         </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            {summaryBadges.map((badge) => (
-                                <div
-                                    key={badge.label}
-                                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${badge.accent}`}
-                                >
-                                    <span>{badge.label}</span>
-                                    <span className="text-base">
-                                        {badge.value}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -405,7 +395,29 @@ export default function AdminDataAlatPage() {
                                             placeholder="Cari nama alat..."
                                         />
                                     </th>
-                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3">
+                                        <select
+                                            value={jurusanFilter ?? ''}
+                                            onChange={(event) =>
+                                                visitWithFilters({
+                                                    jurusan: event.target.value
+                                                        ? event.target.value
+                                                        : null,
+                                                })
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                        >
+                                            <option value="">Semua</option>
+                                            {jurusanOptions.map((jurusan) => (
+                                                <option
+                                                    key={jurusan}
+                                                    value={jurusan}
+                                                >
+                                                    {jurusan}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </th>
                                     <th className="px-4 py-3">
                                         <select
                                             value={kategoriFilter ?? ''}
@@ -477,23 +489,25 @@ export default function AdminDataAlatPage() {
                                             <td className="px-2 py-4 font-semibold text-[#1A3263]">
                                                 {index + 1}
                                             </td>
-                                            <td className="space-x-2 px-4 py-4 text-xs font-semibold">
+                                            <td className="flex items-center gap-2 px-4 py-4 text-[#1A3263]">
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         handleShowDetail(item)
                                                     }
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#E0E7FF] px-2 py-1 text-[#1A3263] hover:bg-[#EEF2FF]"
+                                                    title="Detail"
+                                                    aria-label="Detail"
+                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] text-[#1A3263] transition hover:bg-[#EEF2FF]"
                                                 >
-                                                    <Eye className="h-3.5 w-3.5" />{' '}
-                                                    Detail
+                                                    <Eye className="h-4 w-4" />
                                                 </button>
                                                 <Link
                                                     href={`/admin/alat/data/${item.id}/edit`}
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#1A3263] px-2 py-1 text-[#1A3263] hover:bg-[#EEF3FF]"
+                                                    title="Edit"
+                                                    aria-label="Edit"
+                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] text-[#1A3263] transition hover:bg-[#EEF3FF]"
                                                 >
-                                                    <PencilLine className="h-3.5 w-3.5" />{' '}
-                                                    Edit
+                                                    <PencilLine className="h-4 w-4" />
                                                 </Link>
                                                 <button
                                                     type="button"
@@ -502,10 +516,11 @@ export default function AdminDataAlatPage() {
                                                             item.id,
                                                         )
                                                     }
-                                                    className="inline-flex items-center gap-1 rounded-lg border border-[#FEE2E2] px-2 py-1 text-[#B91C1C] hover:bg-[#FEE2E2]"
+                                                    title="Hapus"
+                                                    aria-label="Hapus"
+                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#FEE2E2] text-[#B91C1C] transition hover:bg-[#FEE2E2]"
                                                 >
-                                                    <Trash2 className="h-3.5 w-3.5" />{' '}
-                                                    Hapus
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </td>
                                             <td className="px-4 py-4 text-[#1A3263]">

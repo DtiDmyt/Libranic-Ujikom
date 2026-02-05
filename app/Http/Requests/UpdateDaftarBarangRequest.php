@@ -15,10 +15,10 @@ class UpdateDaftarBarangRequest extends FormRequest
     {
         return [
             'nama_alat' => ['required', 'string', 'max:255'],
-            'deskripsi_alat' => ['nullable', 'string'],
             'kategori_jurusan' => ['required', 'string', 'max:255'],
             'kategori_alat_id' => ['required', 'integer', 'exists:kategori_alat,id'],
             'ruangan' => ['required', 'string', 'max:255'],
+            'denda_keterlambatan' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', 'in:publik,draft'],
             'gambar' => ['nullable', 'image', 'max:2048'],
         ];
