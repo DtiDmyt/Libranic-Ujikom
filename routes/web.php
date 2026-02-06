@@ -1,17 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
 
 Route::get('/', function () {
-    if (! auth()->check()) {
+    if (! Auth::check()) {
         return redirect()->route('login');
     }
 
-    $role = auth()->user()->account_role ?? 'peminjam';
+    $role = Auth::user()->account_role ?? 'peminjam';
 
     $routeName = match ($role) {
         'admin' => 'admin.dashboard',

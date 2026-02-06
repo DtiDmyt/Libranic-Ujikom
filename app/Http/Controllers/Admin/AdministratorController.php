@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateAdministratorRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +21,7 @@ class AdministratorController extends Controller
     {
         $roles = $this->availableRoles();
         $statuses = $this->availableStatuses();
+        $currentUserId = Auth::id();
 
         $filters = [
             'name' => $request->string('name')->toString(),
@@ -39,7 +41,7 @@ class AdministratorController extends Controller
             ->when($filters['role'] !== 'semua', fn($query) => $query->where('account_role', $filters['role']))
             ->orderBy('name')
             ->get()
-            ->map(function (User $user) {
+            ->map(function (User $user) use ($currentUserId) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -50,7 +52,7 @@ class AdministratorController extends Controller
                     'kelas' => $user->kelas,
                     'identitas' => $user->identitas,
                     'created_at' => $user->created_at?->toIso8601String(),
-                    'can_manage' => auth()->id() !== $user->id,
+                    'can_manage' => $currentUserId !== $user->id,
                 ];
             })
             ->values();
@@ -141,8 +143,9 @@ class AdministratorController extends Controller
     public function destroy(User $administrator): RedirectResponse
     {
         $this->ensureManageable($administrator);
+        $currentUserId = Auth::id();
 
-        if (auth()->id() === $administrator->id) {
+        if ($currentUserId === $administrator->id) {
             return redirect()
                 ->route('admin.master-data.administrator.index')
                 ->with('error', 'Anda tidak dapat menghapus akun yang sedang digunakan.');
@@ -157,8 +160,10 @@ class AdministratorController extends Controller
 
     public function bulkDestroy(BulkDeleteAdministratorRequest $request): RedirectResponse
     {
+        $currentUserId = Auth::id();
+
         $ids = collect($request->validated('ids'))
-            ->filter(fn($id) => $id !== auth()->id())
+            ->filter(fn($id) => $id !== $currentUserId)
             ->values();
 
         if ($ids->isEmpty()) {
@@ -177,9 +182,10 @@ class AdministratorController extends Controller
     public function bulkUpdateStatus(BulkUpdateAdministratorStatusRequest $request): RedirectResponse
     {
         $status = $request->validated('status');
+        $currentUserId = Auth::id();
 
         $ids = collect($request->validated('ids'))
-            ->filter(fn($id) => $id !== auth()->id())
+            ->filter(fn($id) => $id !== $currentUserId)
             ->values();
 
         if ($ids->isEmpty()) {
