@@ -169,15 +169,14 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         icon: LayoutGrid,
                     },
                     {
-                        title: 'Manajemen Pinjam-Kembali',
+                        title: 'Data Peminjaman',
+                        href: '/petugas/data-peminjaman',
                         icon: ClipboardList,
-                        subItems: [
-                            {
-                                title: 'Daftar Peminjaman',
-                                href: '/petugas/peminjaman',
-                                icon: Clock,
-                            },
-                        ],
+                    },
+                    {
+                        title: 'Data Pengembalian',
+                        href: '/petugas/data-pengembalian',
+                        icon: ClipboardList,
                     },
                     {
                         title: 'Laporan',
@@ -202,38 +201,6 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     {
                         title: 'Daftar Alat',
                         icon: LibrarySquare,
-                        subItems: [
-                            {
-                                title: 'PPLG',
-                                href: '/daftar-alat/pplg',
-                                icon: Code2,
-                            },
-                            {
-                                title: 'ANIM',
-                                href: '/daftar-alat/anim',
-                                icon: Image,
-                            },
-                            {
-                                title: 'BCF',
-                                href: '/daftar-alat/bcf',
-                                icon: Clapperboard,
-                            },
-                            {
-                                title: 'TO',
-                                href: '/daftar-alat/to',
-                                icon: Car,
-                            },
-                            {
-                                title: 'TPFL',
-                                href: '/daftar-alat/tpfl',
-                                icon: Flame,
-                            },
-                            {
-                                title: 'UMUM',
-                                href: '/daftar-alat/umum',
-                                icon: School,
-                            },
-                        ],
                     },
                     {
                         title: 'Peminjaman Saya',
