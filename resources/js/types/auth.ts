@@ -3,6 +3,7 @@ export type User = {
     name: string;
     email: string;
     account_role: 'admin' | 'petugas' | 'peminjam';
+    status?: 'aktif' | 'nonaktif';
     role?: 'murid' | 'guru' | 'lainnya' | null;
     kelas?: string | null;
     phone?: string | null;

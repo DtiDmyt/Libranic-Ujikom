@@ -3,8 +3,9 @@
 namespace App\Http\Responses;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 
 class LoginResponse implements LoginResponseContract
@@ -25,10 +26,14 @@ class LoginResponse implements LoginResponseContract
 
     private function resolveRedirectPath(Request $request): string
     {
-        $role = $request->user()->account_role ?? 'peminjam';
+        $role = Str::of($request->user()->account_role ?? 'peminjam')
+            ->trim()
+            ->lower()
+            ->toString();
 
         return match ($role) {
-            'admin' => route('admin.dashboard'),
+            'admin',
+            'administrator' => route('admin.dashboard'),
             'petugas' => route('petugas.dashboard'),
             default => route('dashboard'),
         };

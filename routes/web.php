@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
 
@@ -45,6 +46,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::delete('data/{daftarBarang}', [DaftarBarangController::class, 'destroy'])->name('data.destroy');
             Route::delete('data/bulk-delete', [DaftarBarangController::class, 'bulkDestroy'])->name('data.bulk-destroy');
             Route::patch('data/bulk-status', [DaftarBarangController::class, 'bulkUpdateStatus'])->name('data.bulk-status');
+        });
+
+        Route::prefix('master-data')->name('master-data.')->group(function () {
+            Route::prefix('administrator')->name('administrator.')->group(function () {
+                Route::get('/', [AdministratorController::class, 'index'])->name('index');
+                Route::get('tambah', [AdministratorController::class, 'create'])->name('create');
+                Route::post('/', [AdministratorController::class, 'store'])->name('store');
+                Route::get('{administrator}/edit', [AdministratorController::class, 'edit'])->name('edit');
+                Route::patch('{administrator}', [AdministratorController::class, 'update'])->name('update');
+                Route::delete('{administrator}', [AdministratorController::class, 'destroy'])->name('destroy');
+                Route::delete('bulk-delete', [AdministratorController::class, 'bulkDestroy'])->name('bulk-destroy');
+                Route::patch('bulk-status', [AdministratorController::class, 'bulkUpdateStatus'])->name('bulk-status');
+            });
         });
     });
 

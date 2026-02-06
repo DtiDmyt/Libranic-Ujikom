@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'account_role' => $accountRole,
+            'status' => fake()->randomElement(['aktif', 'nonaktif']),
             'role' => $role,
             'kelas' => $role === 'murid'
                 ? fake()->randomElement(['X PPLG 1', 'XI TKJ 2', 'XII RPL 3'])
