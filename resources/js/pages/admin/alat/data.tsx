@@ -268,11 +268,15 @@ export default function AdminDataAlatPage() {
     const handleShowDetail = (item: ItemRow) => {
         const detailHtml = `
             <div class="space-y-2 text-left text-sm text-[#1A3263]">
+                <p><span class="font-semibold">Kode Alat:</span> ${escapeHtml(item.kode_alat ?? '-')}</p>
+                <p><span class="font-semibold">Stok:</span> ${item.stok}</p>
                 <p><span class="font-semibold">Kategori Jurusan:</span> ${escapeHtml(item.kategori_jurusan)}</p>
                 <p><span class="font-semibold">Kategori Alat:</span> ${escapeHtml(item.kategori_alat ?? '-')}</p>
                 <p><span class="font-semibold">Ruangan:</span> ${escapeHtml(item.ruangan)}</p>
                 <p><span class="font-semibold">Status:</span> ${statusLabels[item.status]}</p>
                 <p><span class="font-semibold">Denda per Hari:</span> ${escapeHtml(formatCurrency(item.denda_keterlambatan))}</p>
+                <p><span class="font-semibold">Kondisi:</span> ${escapeHtml(item.kondisi_alat)}</p>
+                <p><span class="font-semibold">Deskripsi:</span> ${escapeHtml(item.deskripsi ?? '-')}</p>
             </div>
         `;
 
@@ -376,6 +380,8 @@ export default function AdminDataAlatPage() {
                                         Kategori Jurusan
                                     </th>
                                     <th className="px-4 py-4">Kategori Alat</th>
+                                    <th className="px-4 py-4">Stok</th>
+                                    <th className="px-4 py-4">Kode Alat</th>
                                     <th className="px-4 py-4">Status</th>
                                 </tr>
                                 <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
@@ -444,6 +450,8 @@ export default function AdminDataAlatPage() {
                                             ))}
                                         </select>
                                     </th>
+                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3" />
                                     <th className="px-4 py-3">
                                         <select
                                             value={statusFilter}
@@ -537,6 +545,12 @@ export default function AdminDataAlatPage() {
                                             <td className="px-4 py-4 text-[#1A3263]">
                                                 {item.kategori_alat ?? '-'}
                                             </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {item.stok}
+                                            </td>
+                                            <td className="px-4 py-4 font-mono text-sm text-[#1A3263]">
+                                                {item.kode_alat ?? '-'}
+                                            </td>
                                             <td className="px-4 py-4">
                                                 <span
                                                     className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[item.status]}`}
@@ -553,7 +567,7 @@ export default function AdminDataAlatPage() {
                                 {items.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={9}
                                             className="px-6 py-10 text-center text-sm text-[#547792]"
                                         >
                                             Tidak ada data alat.

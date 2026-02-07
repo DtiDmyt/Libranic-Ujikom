@@ -23,20 +23,28 @@ type ItemPayload = {
     nama_alat: string;
     kategori_jurusan: string;
     kategori_alat_id: number;
+    stok: number;
+    kode_alat: string | null;
     ruangan: string;
     denda_keterlambatan: number;
     status: Status;
     gambar_url: string | null;
+    kondisi_alat: string;
+    deskripsi: string | null;
 };
 
 type FormFields = {
     nama_alat: string;
     kategori_jurusan: string;
     kategori_alat_id: string;
+    stok: string;
+    kode_alat: string;
     ruangan: string;
     denda_keterlambatan: string;
     status: Status;
     gambar: File | null;
+    kondisi_alat: string;
+    deskripsi: string;
 };
 
 type PageProps = SharedData & {
@@ -66,10 +74,14 @@ export default function AdminEditDataAlatPage() {
         nama_alat: item.nama_alat,
         kategori_jurusan: item.kategori_jurusan,
         kategori_alat_id: item.kategori_alat_id.toString(),
+        stok: item.stok.toString(),
+        kode_alat: item.kode_alat ?? '',
         ruangan: item.ruangan,
         denda_keterlambatan: item.denda_keterlambatan.toString(),
         status: item.status,
         gambar: null,
+        kondisi_alat: item.kondisi_alat,
+        deskripsi: item.deskripsi ?? '',
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(
@@ -256,6 +268,41 @@ export default function AdminEditDataAlatPage() {
                                 ) : null}
                             </div>
                         </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Stok *
+                                </label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={form.data.stok}
+                                    onChange={(event) =>
+                                        form.setData('stok', event.target.value)
+                                    }
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                                />
+                                {form.errors.stok ? (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.stok}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Kode Alat (otomatis)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={form.data.kode_alat}
+                                    readOnly
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
+                                />
+                                <p className="mt-1 text-xs text-[#547792]">
+                                    Kode alat tidak dapat diubah secara manual.
+                                </p>
+                            </div>
+                        </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
@@ -308,6 +355,52 @@ export default function AdminEditDataAlatPage() {
                                     </p>
                                 ) : null}
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-semibold text-[#1A3263]">
+                                Kondisi Alat Sebelum Di Pinjam *
+                            </label>
+                            <textarea
+                                value={form.data.kondisi_alat}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'kondisi_alat',
+                                        event.target.value,
+                                    )
+                                }
+                                rows={3}
+                                placeholder="Jelaskan kondisi alat saat berada di gudang"
+                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                            />
+                            {form.errors.kondisi_alat ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {form.errors.kondisi_alat}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-semibold text-[#1A3263]">
+                                Deskripsi Alat
+                            </label>
+                            <textarea
+                                value={form.data.deskripsi}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'deskripsi',
+                                        event.target.value,
+                                    )
+                                }
+                                rows={4}
+                                placeholder="Tambahkan catatan teknis atau kegunaan alat"
+                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                            />
+                            {form.errors.deskripsi ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {form.errors.deskripsi}
+                                </p>
+                            ) : null}
                         </div>
                     </div>
 

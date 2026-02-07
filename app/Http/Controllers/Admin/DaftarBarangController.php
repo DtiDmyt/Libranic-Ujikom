@@ -18,6 +18,8 @@ use Inertia\Response;
 
 class DaftarBarangController extends Controller
 {
+    private const JURUSAN_OPTIONS = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
+
     public function index(Request $request): Response
     {
         $filters = [
@@ -40,8 +42,12 @@ class DaftarBarangController extends Controller
                 'nama_alat' => $item->nama_alat,
                 'kategori_jurusan' => $item->kategori_jurusan,
                 'kategori_alat' => $item->kategoriAlat?->nama,
+                'stok' => (int) $item->stok,
+                'kode_alat' => $item->kode_alat,
                 'ruangan' => $item->ruangan,
                 'denda_keterlambatan' => $item->denda_keterlambatan,
+                'kondisi_alat' => $item->kondisi_alat,
+                'deskripsi' => $item->deskripsi,
                 'status' => $item->status,
                 'gambar_url' => $item->gambar_url,
                 'created_at' => $item->created_at?->toIso8601String(),
@@ -72,13 +78,17 @@ class DaftarBarangController extends Controller
 
         return Inertia::render('admin/alat/tambah-data', [
             'categories' => $categories,
+            'kodePreviews' => $this->kodePreviews(),
         ]);
     }
 
     public function store(StoreDaftarBarangRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['stok'] = (int) ($data['stok'] ?? 0);
         $data['denda_keterlambatan'] = (int) ($data['denda_keterlambatan'] ?? 0);
+        $data['kode_alat'] = $this->generateKodeAlat($data['kategori_jurusan']);
+        $data['deskripsi'] = $data['deskripsi'] ?? null;
         $data['gambar_path'] = $this->storeImage($request->file('gambar'));
 
         unset($data['gambar']);
@@ -100,8 +110,12 @@ class DaftarBarangController extends Controller
                 'nama_alat' => $daftarBarang->nama_alat,
                 'kategori_jurusan' => $daftarBarang->kategori_jurusan,
                 'kategori_alat_id' => $daftarBarang->kategori_alat_id,
+                'stok' => (int) $daftarBarang->stok,
+                'kode_alat' => $daftarBarang->kode_alat,
                 'ruangan' => $daftarBarang->ruangan,
                 'denda_keterlambatan' => $daftarBarang->denda_keterlambatan,
+                'kondisi_alat' => $daftarBarang->kondisi_alat,
+                'deskripsi' => $daftarBarang->deskripsi,
                 'status' => $daftarBarang->status,
                 'gambar_url' => $daftarBarang->gambar_url,
             ],
@@ -112,7 +126,9 @@ class DaftarBarangController extends Controller
     public function update(UpdateDaftarBarangRequest $request, DaftarBarang $daftarBarang): RedirectResponse
     {
         $data = $request->validated();
+        $data['stok'] = (int) ($data['stok'] ?? 0);
         $data['denda_keterlambatan'] = (int) ($data['denda_keterlambatan'] ?? 0);
+        $data['deskripsi'] = $data['deskripsi'] ?? null;
 
         $data['gambar_path'] = $this->storeImage(
             $request->file('gambar'),
@@ -159,6 +175,37 @@ class DaftarBarangController extends Controller
         return redirect()
             ->route('admin.alat.data.index')
             ->with('success', 'Status data alat berhasil diperbarui.');
+    }
+
+    private function kodePreviews(): array
+    {
+        return collect(self::JURUSAN_OPTIONS)
+            ->mapWithKeys(fn(string $jurusan) => [$jurusan => $this->generateKodeAlat($jurusan)])
+            ->all();
+    }
+
+    private function generateKodeAlat(string $jurusan): string
+    {
+        $jurusanCode = strtoupper($jurusan);
+        $prefix = sprintf('ALT-%s-', $jurusanCode);
+
+        $latestCode = DaftarBarang::where('kode_alat', 'like', $prefix . '%')
+            ->orderByDesc('kode_alat')
+            ->value('kode_alat');
+
+        $nextNumber = 1;
+
+        if ($latestCode && preg_match('/(\d{4})$/', $latestCode, $matches)) {
+            $nextNumber = ((int) $matches[1]) + 1;
+        }
+        do {
+            $candidate = sprintf('%s%04d', $prefix, $nextNumber);
+            $exists = DaftarBarang::where('kode_alat', $candidate)->exists();
+            if (! $exists) {
+                return $candidate;
+            }
+            $nextNumber++;
+        } while (true);
     }
 
     private function storeImage(?UploadedFile $file, ?string $existingPath = null): ?string

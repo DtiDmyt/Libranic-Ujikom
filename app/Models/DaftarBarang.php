@@ -17,14 +17,19 @@ class DaftarBarang extends Model
         'nama_alat',
         'kategori_jurusan',
         'kategori_alat_id',
+        'stok',
+        'kode_alat',
         'ruangan',
         'denda_keterlambatan',
+        'kondisi_alat',
+        'deskripsi',
         'status',
         'gambar_path',
     ];
 
     protected $casts = [
         'kategori_alat_id' => 'integer',
+        'stok' => 'integer',
         'denda_keterlambatan' => 'integer',
     ];
 
@@ -33,6 +38,7 @@ class DaftarBarang extends Model
     protected $attributes = [
         'status' => 'draft',
         'denda_keterlambatan' => 0,
+        'stok' => 0,
     ];
 
     protected $hidden = ['gambar_path'];

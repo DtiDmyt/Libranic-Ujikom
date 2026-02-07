@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowLeft, ImageIcon } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
@@ -18,18 +18,25 @@ type CategoryOption = {
 
 type Status = 'publik' | 'draft';
 
+type KodePreviewMap = Record<string, string>;
+
 type FormFields = {
     nama_alat: string;
     kategori_jurusan: string;
     kategori_alat_id: string;
+    stok: string;
+    kode_alat: string;
     ruangan: string;
     denda_keterlambatan: string;
+    kondisi_alat: string;
+    deskripsi: string;
     status: Status;
     gambar: File | null;
 };
 
 type PageProps = SharedData & {
     categories: CategoryOption[];
+    kodePreviews: KodePreviewMap;
 };
 
 const statusOptions: { value: Status; label: string }[] = [
@@ -47,21 +54,48 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function AdminTambahDataAlatPage() {
-    const { categories } = usePage<PageProps>().props;
+    const { categories, kodePreviews } = usePage<PageProps>().props;
     const hasCategories = categories.length > 0;
 
     const form = useForm<FormFields>({
         nama_alat: '',
         kategori_jurusan: '',
-        kategori_alat_id: categories[0]?.id.toString() ?? '',
+        kategori_alat_id: '',
+        stok: '0',
+        kode_alat: '',
         ruangan: '',
         denda_keterlambatan: '0',
+        kondisi_alat: '',
+        deskripsi: '',
         status: 'publik',
         gambar: null,
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const kodePreviewValue = useMemo(() => {
+        const jurusan = form.data.kategori_jurusan;
+        if (!jurusan) {
+            return '';
+        }
+
+        return kodePreviews[jurusan] ?? `ALT-${jurusan}-0001`;
+    }, [form.data.kategori_jurusan, kodePreviews]);
+
+    useEffect(() => {
+        if (!kodePreviewValue) {
+            if (form.data.kode_alat) {
+                form.setData('kode_alat', '');
+            }
+            return;
+        }
+
+        if (form.data.kode_alat !== kodePreviewValue) {
+            form.setData('kode_alat', kodePreviewValue);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [kodePreviewValue]);
 
     useEffect(() => {
         return () => {
@@ -233,6 +267,45 @@ export default function AdminTambahDataAlatPage() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label className="text-sm font-semibold text-[#1A3263]">
+                                    Stok *
+                                </label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    value={form.data.stok}
+                                    onChange={(event) =>
+                                        form.setData('stok', event.target.value)
+                                    }
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                                    placeholder="Masukkan jumlah stok"
+                                />
+                                {form.errors.stok ? (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.stok}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Kode Alat (otomatis)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={form.data.kode_alat}
+                                    readOnly
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
+                                    placeholder="Pilih jurusan untuk melihat kode"
+                                />
+                                <p className="mt-1 text-xs text-[#547792]">
+                                    Contoh format: ALT-PPLG-0001. Kode mengikuti
+                                    jurusan dan dibuat otomatis saat disimpan.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
                                     Ruangan *
                                 </label>
                                 <input
@@ -281,6 +354,52 @@ export default function AdminTambahDataAlatPage() {
                                     </p>
                                 ) : null}
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-semibold text-[#1A3263]">
+                                Kondisi Alat Sebelum Dipinjam *
+                            </label>
+                            <textarea
+                                value={form.data.kondisi_alat}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'kondisi_alat',
+                                        event.target.value,
+                                    )
+                                }
+                                rows={3}
+                                placeholder="Jelaskan kondisi alat saat berada di gudang"
+                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                            />
+                            {form.errors.kondisi_alat ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {form.errors.kondisi_alat}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-semibold text-[#1A3263]">
+                                Deskripsi Alat
+                            </label>
+                            <textarea
+                                value={form.data.deskripsi}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'deskripsi',
+                                        event.target.value,
+                                    )
+                                }
+                                rows={4}
+                                placeholder="Tambahkan catatan teknis atau kegunaan alat"
+                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                            />
+                            {form.errors.deskripsi ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {form.errors.deskripsi}
+                                </p>
+                            ) : null}
                         </div>
                     </div>
 

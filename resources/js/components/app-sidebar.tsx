@@ -200,6 +200,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     },
                     {
                         title: 'Daftar Alat',
+                        href: '/daftar-alat',
                         icon: LibrarySquare,
                     },
                     {
@@ -207,7 +208,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         icon: ClipboardList,
                         subItems: [
                             {
-                                title: 'Ajukan Peminjaman',
+                                title: 'Ajukan Pengembalian',
                                 href: '/peminjaman/ajukan',
                                 icon: SendHorizontal,
                             },

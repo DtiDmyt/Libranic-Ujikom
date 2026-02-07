@@ -6,6 +6,8 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
+use App\Http\Controllers\Admin\PeminjamanController;
+use App\Http\Controllers\Pengguna\DaftarAlatController;
 
 Route::get('/', function () {
     if (! Auth::check()) {
@@ -24,9 +26,14 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->middleware('role:peminjam')->name('dashboard');
+    Route::middleware('role:peminjam')->group(function () {
+        Route::get('dashboard', function () {
+            return Inertia::render('dashboard');
+        })->name('dashboard');
+
+        Route::get('daftar-alat', [DaftarAlatController::class, 'index'])
+            ->name('daftar-alat.index');
+    });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', function () {
@@ -60,6 +67,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::delete('bulk-delete', [AdministratorController::class, 'bulkDestroy'])->name('bulk-destroy');
                 Route::patch('bulk-status', [AdministratorController::class, 'bulkUpdateStatus'])->name('bulk-status');
             });
+        });
+
+        Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
+            Route::get('/', [PeminjamanController::class, 'index'])->name('index');
+            Route::get('data', [PeminjamanController::class, 'index'])->name('data.index');
+            Route::get('data/tambah', [PeminjamanController::class, 'create'])->name('data.tambah');
+            Route::get('data/{loan}/edit', [PeminjamanController::class, 'edit'])->name('data.edit');
+            Route::get('data/{loan}', [PeminjamanController::class, 'show'])->name('data.show');
         });
     });
 
