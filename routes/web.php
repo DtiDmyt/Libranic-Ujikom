@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
 use App\Http\Controllers\Admin\PeminjamanController;
 use App\Http\Controllers\Pengguna\DaftarAlatController;
+use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
 
 Route::get('/', function () {
     if (! Auth::check()) {
@@ -33,6 +34,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('daftar-alat', [DaftarAlatController::class, 'index'])
             ->name('daftar-alat.index');
+
+        Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
+            Route::get('/', [PenggunaPeminjamanController::class, 'index'])
+                ->name('index');
+            Route::get('riwayat', [PenggunaPeminjamanController::class, 'index'])
+                ->name('riwayat');
+            Route::get('form', [PenggunaPeminjamanController::class, 'create'])
+                ->name('form');
+            Route::post('form', [PenggunaPeminjamanController::class, 'store'])
+                ->name('form.store');
+        });
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {

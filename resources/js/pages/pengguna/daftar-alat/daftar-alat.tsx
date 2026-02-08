@@ -1,12 +1,13 @@
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
 type BorrowableItem = {
     id: number;
     nama_alat: string;
     lokasi: string;
     stok?: number | null;
+    gambar_url?: string | null;
     status: 'tersedia' | 'habis';
 };
 
@@ -61,12 +62,36 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                             >
                                 {/* Gambar */}
                                 <div className="h-48 w-full">
-                                    <img
-                                        src={`https://picsum.photos/seed/alat-${item.id}/480/320`}
-                                        alt={item.nama_alat}
-                                        className="h-full w-full object-cover"
-                                        loading="lazy"
-                                    />
+                                    {item.gambar_url ? (
+                                        <img
+                                            src={item.gambar_url}
+                                            alt={item.nama_alat}
+                                            className="h-full w-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full w-full flex-col items-center justify-center bg-[#E8DED3] text-[#8E7661]">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                className="h-12 w-12"
+                                                aria-hidden="true"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth={1.6}
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M9 7.5 10.5 5h3L15 7.5H19a2 2 0 0 1 2 2v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-7A2 2 0 0 1 5 7.5z"
+                                                />
+                                                <circle cx="12" cy="13" r="3" />
+                                            </svg>
+                                            <span className="mt-2 text-xs font-semibold tracking-[0.3em] uppercase">
+                                                Tidak Ada Gambar
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Konten */}
@@ -97,12 +122,12 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                                     </div>
 
                                     {/* Button Pinjam (posisi selalu rata bawah) */}
-                                    <button
-                                        type="button"
+                                    <Link
+                                        href={`/peminjaman/form?alat=${item.id}`}
                                         className="mt-6 flex w-full items-center justify-center rounded-2xl bg-[#FAB95B] px-6 py-3 text-sm font-semibold tracking-widest text-[#1A3263] uppercase transition hover:bg-[#f7a63b]"
                                     >
                                         Pinjam
-                                    </button>
+                                    </Link>
                                 </div>
                             </article>
                         ))}

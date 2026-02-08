@@ -297,8 +297,7 @@ export default function AdminTambahDataAlatPage() {
                                     placeholder="Pilih jurusan untuk melihat kode"
                                 />
                                 <p className="mt-1 text-xs text-[#547792]">
-                                    Contoh format: ALT-PPLG-0001. Kode mengikuti
-                                    jurusan dan dibuat otomatis saat disimpan.
+                                    Dibuat secara otomatis.
                                 </p>
                             </div>
                         </div>
@@ -369,7 +368,7 @@ export default function AdminTambahDataAlatPage() {
                                     )
                                 }
                                 rows={3}
-                                placeholder="Jelaskan kondisi alat saat berada di gudang"
+                                placeholder="Jelaskan kondisi alat sebelum dipinjam"
                                 className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
                             />
                             {form.errors.kondisi_alat ? (

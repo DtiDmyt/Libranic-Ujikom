@@ -208,8 +208,8 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         icon: ClipboardList,
                         subItems: [
                             {
-                                title: 'Ajukan Pengembalian',
-                                href: '/peminjaman/ajukan',
+                                title: 'Daftar Peminjaman',
+                                href: '/peminjaman',
                                 icon: SendHorizontal,
                             },
                             {
