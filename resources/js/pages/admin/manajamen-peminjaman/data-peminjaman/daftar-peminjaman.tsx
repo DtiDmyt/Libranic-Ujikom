@@ -1,6 +1,13 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
+import {
+    CheckCircle2,
+    Eye,
+    PencilLine,
+    Plus,
+    Trash2,
+    XCircle,
+} from 'lucide-react';
 import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
@@ -203,23 +210,68 @@ export default function AdminDataPeminjamanPage() {
         });
     };
 
-    const handleMarkComplete = (id: number) => {
-        alertLoading('Menandai peminjaman selesai...');
-        router.patch(
-            `/admin/peminjaman/data/${id}/selesai`,
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    closeAlert();
-                    alertSuccess('Peminjaman ditandai selesai.');
-                },
-                onError: () => {
-                    closeAlert();
-                    alertError('Tidak dapat menandai selesai.');
-                },
+    const updateLoanStatus = (
+        id: number,
+        status: 'disetujui' | 'ditolak',
+        options?: { reason?: string },
+    ) => {
+        const payload: Record<string, unknown> = {
+            status,
+        };
+
+        if (options?.reason) {
+            payload.reason = options.reason;
+        }
+
+        const loadingMessage =
+            status === 'disetujui'
+                ? 'Menandai peminjaman selesai...'
+                : 'Menolak peminjaman...';
+        const successMessage =
+            status === 'disetujui'
+                ? 'Peminjaman disetujui.'
+                : 'Peminjaman ditolak.';
+
+        alertLoading(loadingMessage);
+        router.patch(`/admin/peminjaman/data/${id}/status`, payload, {
+            preserveScroll: true,
+            onSuccess: () => {
+                closeAlert();
+                alertSuccess(successMessage);
             },
-        );
+            onError: () => {
+                closeAlert();
+                alertError(
+                    status === 'disetujui'
+                        ? 'Tidak dapat menandai selesai.'
+                        : 'Tidak dapat menolak peminjaman.',
+                );
+            },
+        });
+    };
+
+    const handleMarkComplete = (id: number) => {
+        updateLoanStatus(id, 'disetujui');
+    };
+
+    const handleCancel = (id: number) => {
+        Swal.fire({
+            title: 'Tolak Peminjaman',
+            text: 'Masukkan alasan penolakan.',
+            input: 'textarea',
+            inputPlaceholder: 'Jelaskan mengapa peminjaman ditolak...',
+            showCancelButton: true,
+            confirmButtonText: 'Kirim',
+            cancelButtonText: 'Batal',
+            inputValidator: (value) =>
+                value?.trim() ? null : 'Alasan penolakan wajib diisi.',
+        }).then((result) => {
+            if (!result.isConfirmed) return;
+
+            updateLoanStatus(id, 'ditolak', {
+                reason: result.value?.trim() ?? '',
+            });
+        });
     };
 
     const borrowerMap = useMemo(() => {
@@ -365,6 +417,32 @@ export default function AdminDataPeminjamanPage() {
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2 text-[#1A3263]">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleMarkComplete(
+                                                                item.id,
+                                                            )
+                                                        }
+                                                        title="Setujui"
+                                                        aria-label="Setujui"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#D1FAE5] text-[#047857] transition hover:bg-[#DCFCE7]"
+                                                    >
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleCancel(
+                                                                item.id,
+                                                            )
+                                                        }
+                                                        title="Batalkan"
+                                                        aria-label="Batalkan"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#FDE2E2] text-[#B91C1C] transition hover:bg-[#FEE2E2]"
+                                                    >
+                                                        <XCircle className="h-4 w-4" />
+                                                    </button>
                                                     <Link
                                                         href={`/admin/peminjaman/data/${item.id}`}
                                                         title="Detail"
@@ -381,19 +459,6 @@ export default function AdminDataPeminjamanPage() {
                                                     >
                                                         <PencilLine className="h-4 w-4" />
                                                     </Link>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleMarkComplete(
-                                                                item.id,
-                                                            )
-                                                        }
-                                                        title="Selesai"
-                                                        aria-label="Selesai"
-                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#D1FAE5] text-[#047857] transition hover:bg-[#DCFCE7]"
-                                                    >
-                                                        <CheckCircle2 className="h-4 w-4" />
-                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() =>

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Peminjaman;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,20 +15,75 @@ class PeminjamanController extends Controller
 {
     public function index(Request $request): Response
     {
-        $items = $this->sampleLoans();
+        $search = $request->string('search')->toString();
+        $statusFilter = $request->string('status')->toString() ?: 'semua';
+
+        $query = Peminjaman::with(['alat', 'user']);
+
+        if ($statusFilter !== 'semua') {
+            $query->where('status', $statusFilter);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search) {
+                $builder->where('nama_peminjam', 'like', '%' . $search . '%')
+                    ->orWhereHas('alat', function ($builder) use ($search) {
+                        $builder->where('nama_alat', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        $items = $query->latest('created_at')->get()->map(function (Peminjaman $loan) {
+            return [
+                'id' => $loan->id,
+                'nama_barang' => $loan->alat?->nama_alat ?? '-',
+                'kelas' => $loan->kelas ?? '-',
+                'peminjam' => $loan->nama_peminjam,
+                'jumlah' => $loan->jumlah_pinjam,
+                'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
+                'tanggal_pengembalian' => $loan->tanggal_kembali?->toDateString(),
+                'status' => $loan->status,
+            ];
+        });
 
         $filters = [
-            'search' => $request->string('search')->toString(),
-            'kondisi' => $request->string('kondisi')->toString() ?: 'semua',
-            'kelas' => $request->string('kelas')->toString() ?: 'semua',
+            'search' => $search,
+            'status' => $statusFilter,
         ];
+
+        $borrowers = Peminjaman::select('nama_peminjam as nama', 'kelas')
+            ->distinct()
+            ->get()
+            ->map(fn($item) => ['nama' => $item->nama, 'kelas' => $item->kelas]);
+
+        $kelasOptions = Peminjaman::distinct()
+            ->pluck('kelas')
+            ->filter()
+            ->values()
+            ->all();
 
         return Inertia::render('admin/manajamen-peminjaman/data-peminjaman/daftar-peminjaman', [
             'items' => $items,
             'filters' => $filters,
-            'borrowers' => $this->borrowers(),
-            'kelasOptions' => $this->kelasOptions(),
+            'borrowers' => $borrowers,
+            'kelasOptions' => $kelasOptions,
         ]);
+    }
+
+    public function updateStatus(Request $request, Peminjaman $loan): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:disetujui,ditolak'],
+            'reason' => ['required_if:status,ditolak', 'string', 'max:500'],
+        ]);
+
+        $loan->status = $data['status'];
+        $loan->alasan_penolakan = $data['status'] === 'ditolak'
+            ? $data['reason']
+            : null;
+        $loan->save();
+
+        return response()->json(['status' => 'ok']);
     }
 
     public function create(): Response

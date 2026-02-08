@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\DaftarBarang;
+use App\Models\User;
 
 class Peminjaman extends Model
 {
@@ -25,6 +26,7 @@ class Peminjaman extends Model
         'keperluan',
         'status',
         'denda_per_hari',
+        'alasan_penolakan',
     ];
 
     protected $casts = [
@@ -37,5 +39,10 @@ class Peminjaman extends Model
     public function alat(): BelongsTo
     {
         return $this->belongsTo(DaftarBarang::class, 'daftarbarang_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

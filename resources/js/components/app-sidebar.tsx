@@ -170,7 +170,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     },
                     {
                         title: 'Data Peminjaman',
-                        href: '/petugas/data-peminjaman',
+                        href: '/petugas/peminjaman',
                         icon: ClipboardList,
                     },
                     {

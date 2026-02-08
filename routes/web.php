@@ -6,9 +6,10 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
-use App\Http\Controllers\Admin\PeminjamanController;
+use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\Pengguna\DaftarAlatController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
+use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
 
 Route::get('/', function () {
     if (! Auth::check()) {
@@ -82,17 +83,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
-            Route::get('/', [PeminjamanController::class, 'index'])->name('index');
-            Route::get('data', [PeminjamanController::class, 'index'])->name('data.index');
-            Route::get('data/tambah', [PeminjamanController::class, 'create'])->name('data.tambah');
-            Route::get('data/{loan}/edit', [PeminjamanController::class, 'edit'])->name('data.edit');
-            Route::get('data/{loan}', [PeminjamanController::class, 'show'])->name('data.show');
+            Route::get('/', [AdminPeminjamanController::class, 'index'])->name('index');
+            Route::get('data', [AdminPeminjamanController::class, 'index'])->name('data.index');
+            Route::get('data/tambah', [AdminPeminjamanController::class, 'create'])->name('data.tambah');
+            Route::get('data/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('data.edit');
+            Route::get('data/{loan}', [AdminPeminjamanController::class, 'show'])->name('data.show');
+            Route::patch('data/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('data.status');
         });
     });
 
-    Route::get('petugas/dashboard', function () {
-        return Inertia::render('dashboard');
-    })->middleware('role:petugas')->name('petugas.dashboard');
+    Route::middleware('role:petugas')->prefix('petugas')->name('petugas.')->group(function () {
+        Route::get('dashboard', function () {
+            return Inertia::render('dashboard');
+        })->name('dashboard');
+
+        Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
+            Route::get('/', [PetugasPeminjamanController::class, 'index'])->name('index');
+            Route::patch('{loan}/status', [PetugasPeminjamanController::class, 'updateStatus'])->name('status');
+        });
+    });
 });
 
 require __DIR__ . '/settings.php';
