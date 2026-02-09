@@ -162,7 +162,7 @@ export default function AdminKategoriAlatPage() {
                                         form.setData('nama', e.target.value)
                                     }
                                     className="w-full rounded-xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] transition placeholder:text-slate-400 focus:border-[#3B68D5] focus:bg-white focus:outline-none"
-                                    placeholder="Contoh: Laptop"
+                                    placeholder="Contoh: Perangkat Pendukung"
                                     disabled={form.processing}
                                 />
                                 {form.errors.nama ? (

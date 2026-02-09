@@ -1,13 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
-import {
-    CheckCircle2,
-    Eye,
-    PencilLine,
-    Plus,
-    Trash2,
-    XCircle,
-} from 'lucide-react';
+import { CheckCircle2, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
@@ -18,8 +12,14 @@ import {
     alertSuccess,
     closeAlert,
 } from '@/lib/alert';
+import FormPenolakan from './form-penolakan';
 
 type LoanCondition = 'baik' | 'rusak' | 'hilang';
+
+type BorrowerOption = {
+    nama: string;
+    kelas?: string | null;
+};
 
 type LoanRow = {
     id: number;
@@ -30,18 +30,15 @@ type LoanRow = {
     kondisi_barang: LoanCondition;
     tanggal_pinjam: string;
     tanggal_pengembalian: string;
+    status?: string | null;
 };
 
-type BorrowerOption = {
-    id: number;
-    nama: string;
-    kelas?: string | null;
-};
+type LoanStatus = 'menunggu' | 'disetujui' | 'ditolak';
 
 type PageProps = SharedData & {
     items: LoanRow[];
     filters: {
-        search: string;
+        search?: string | null;
         kondisi: LoanCondition | 'semua';
     };
     borrowers: BorrowerOption[];
@@ -64,18 +61,108 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', {
 const formatDate = (value?: string | null) =>
     value ? dateFormatter.format(new Date(value)) : '-';
 
+const normalizeStatusValue = (status?: string | null): string => {
+    if (!status) {
+        return 'menunggu';
+    }
+
+    const normalized = status.toLowerCase().trim();
+    if (normalized === 'menunggu persetujuan' || normalized === 'pending') {
+        return 'menunggu';
+    }
+
+    if (normalized === 'selesai') {
+        return 'disetujui';
+    }
+
+    return normalized;
+};
+
+const statusLabels: Record<string, string> = {
+    menunggu: 'Menunggu Persetujuan',
+    'menunggu persetujuan': 'Menunggu Persetujuan',
+    pending: 'Menunggu Persetujuan',
+    disetujui: 'Disetujui',
+    ditolak: 'Ditolak',
+    selesai: 'Selesai',
+};
+
+const statusStyles: Record<string, string> = {
+    menunggu: 'bg-[#FEF3C7] text-[#C2410C]',
+    'menunggu persetujuan': 'bg-[#FEF3C7] text-[#C2410C]',
+    pending: 'bg-[#FEF3C7] text-[#C2410C]',
+    disetujui: 'bg-[#ECFDF5] text-[#065F46]',
+    selesai: 'bg-[#DCFCE7] text-[#065F46]',
+    ditolak: 'bg-[#FEE2E2] text-[#991B1B]',
+};
+
+const statusOptions: { value: LoanStatus; label: string }[] = [
+    { value: 'menunggu', label: statusLabels.menunggu },
+    { value: 'disetujui', label: statusLabels.disetujui },
+    { value: 'ditolak', label: statusLabels.ditolak },
+];
+
+const normalizeEditableStatus = (status?: string | null): LoanStatus => {
+    const normalized = normalizeStatusValue(status);
+    if (normalized === 'disetujui') {
+        return 'disetujui';
+    }
+    if (normalized === 'ditolak') {
+        return 'ditolak';
+    }
+    return 'menunggu';
+};
+
+const formatStatusLabel = (status?: string | null): string => {
+    const normalized = normalizeStatusValue(status);
+    return statusLabels[normalized] ?? 'Menunggu Persetujuan';
+};
+
+const renderStatusBadge = (status?: string | null) => {
+    const normalized = normalizeStatusValue(status);
+    const palette = statusStyles[normalized] ?? 'bg-[#E0E7FF] text-[#1E3A8A]';
+
+    return (
+        <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${palette}`}
+        >
+            <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                    normalized === 'disetujui'
+                        ? 'bg-[#059669]'
+                        : normalized === 'ditolak'
+                          ? 'bg-[#B91C1C]'
+                          : 'bg-[#F97316]'
+                }`}
+            />
+            {formatStatusLabel(status)}
+        </span>
+    );
+};
+
 export default function AdminDataPeminjamanPage() {
     const { items, filters, borrowers, flash } = usePage<PageProps>().props;
 
+    const [localItems, setLocalItems] = useState(items);
     const [selected, setSelected] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
+    const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
+    const [pendingStatus, setPendingStatus] = useState<LoanStatus>('menunggu');
+    const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+    const [rejectModalOpen, setRejectModalOpen] = useState(false);
+    const [rejectionTarget, setRejectionTarget] = useState<LoanRow | null>(
+        null,
+    );
 
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
         setSelected((prev) =>
             prev.filter((id) => items.some((item) => item.id === id)),
         );
-    }, [filters.search, items]);
+        setLocalItems(items);
+        setEditingStatusId(null);
+        setStatusLoadingId(null);
+    }, [items, filters.search]);
 
     useEffect(() => {
         if (flash?.success) {
@@ -97,6 +184,18 @@ export default function AdminDataPeminjamanPage() {
         return () => window.clearTimeout(timeout);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchTerm]);
+
+    const hideRejectModal = () => {
+        setRejectModalOpen(false);
+        setRejectionTarget(null);
+    };
+
+    const cancelRejectModal = () => {
+        if (rejectionTarget) {
+            setPendingStatus(normalizeEditableStatus(rejectionTarget.status));
+        }
+        hideRejectModal();
+    };
 
     const visitWithFilters = (overrides?: { search?: string }) => {
         const query: Record<string, unknown> = {
@@ -120,11 +219,14 @@ export default function AdminDataPeminjamanPage() {
 
     const toggleSelectAll = () => {
         setSelected((prev) =>
-            prev.length === items.length ? [] : items.map((item) => item.id),
+            prev.length === localItems.length
+                ? []
+                : localItems.map((item) => item.id),
         );
     };
 
-    const allSelected = items.length > 0 && selected.length === items.length;
+    const allSelected =
+        localItems.length > 0 && selected.length === localItems.length;
     const hasSelected = selected.length > 0;
 
     const handleBulkDelete = () => {
@@ -210,68 +312,65 @@ export default function AdminDataPeminjamanPage() {
         });
     };
 
-    const updateLoanStatus = (
+    const updateLoanStatus = async (
         id: number,
-        status: 'disetujui' | 'ditolak',
+        status: LoanStatus,
         options?: { reason?: string },
     ) => {
-        const payload: Record<string, unknown> = {
-            status,
-        };
-
+        const payload: Record<string, unknown> = { status };
         if (options?.reason) {
             payload.reason = options.reason;
         }
 
         const loadingMessage =
             status === 'disetujui'
-                ? 'Menandai peminjaman selesai...'
-                : 'Menolak peminjaman...';
+                ? 'Menyetujui peminjaman...'
+                : status === 'ditolak'
+                  ? 'Menolak peminjaman...'
+                  : 'Mengatur status menunggu...';
         const successMessage =
             status === 'disetujui'
                 ? 'Peminjaman disetujui.'
-                : 'Peminjaman ditolak.';
+                : status === 'ditolak'
+                  ? 'Peminjaman ditolak.'
+                  : 'Status dikembalikan ke menunggu.';
+        const errorMessage =
+            status === 'disetujui'
+                ? 'Tidak dapat menandai selesai.'
+                : status === 'ditolak'
+                  ? 'Tidak dapat menolak peminjaman.'
+                  : 'Tidak dapat mengatur status menunggu.';
 
+        setStatusLoadingId(id);
         alertLoading(loadingMessage);
-        router.patch(`/admin/peminjaman/data/${id}/status`, payload, {
-            preserveScroll: true,
-            onSuccess: () => {
-                closeAlert();
-                alertSuccess(successMessage);
-            },
-            onError: () => {
-                closeAlert();
-                alertError(
-                    status === 'disetujui'
-                        ? 'Tidak dapat menandai selesai.'
-                        : 'Tidak dapat menolak peminjaman.',
-                );
-            },
-        });
+        try {
+            await axios.patch(`/admin/peminjaman/data/${id}/status`, payload);
+            setLocalItems((prev) =>
+                prev.map((item) =>
+                    item.id === id
+                        ? {
+                              ...item,
+                              status,
+                          }
+                        : item,
+                ),
+            );
+            cancelStatusEdit();
+            closeAlert();
+            alertSuccess(successMessage);
+        } catch (error) {
+            closeAlert();
+            alertError(errorMessage);
+        } finally {
+            setStatusLoadingId(null);
+        }
     };
 
-    const handleMarkComplete = (id: number) => {
-        updateLoanStatus(id, 'disetujui');
-    };
-
-    const handleCancel = (id: number) => {
-        Swal.fire({
-            title: 'Tolak Peminjaman',
-            text: 'Masukkan alasan penolakan.',
-            input: 'textarea',
-            inputPlaceholder: 'Jelaskan mengapa peminjaman ditolak...',
-            showCancelButton: true,
-            confirmButtonText: 'Kirim',
-            cancelButtonText: 'Batal',
-            inputValidator: (value) =>
-                value?.trim() ? null : 'Alasan penolakan wajib diisi.',
-        }).then((result) => {
-            if (!result.isConfirmed) return;
-
-            updateLoanStatus(id, 'ditolak', {
-                reason: result.value?.trim() ?? '',
-            });
-        });
+    const handleRejectSubmit = (reason: string) => {
+        if (!rejectionTarget) {
+            return;
+        }
+        updateLoanStatus(rejectionTarget.id, 'ditolak', { reason });
     };
 
     const borrowerMap = useMemo(() => {
@@ -281,6 +380,41 @@ export default function AdminDataPeminjamanPage() {
         });
         return map;
     }, [borrowers]);
+
+    const beginStatusEdit = (item: LoanRow) => {
+        setEditingStatusId(item.id);
+        setPendingStatus(normalizeEditableStatus(item.status));
+    };
+
+    const cancelStatusEdit = () => {
+        hideRejectModal();
+        setEditingStatusId(null);
+        setStatusLoadingId(null);
+        setPendingStatus('menunggu');
+    };
+
+    const submitStatusEdit = (item: LoanRow) => {
+        const nextStatus = pendingStatus;
+        const currentStatus = normalizeEditableStatus(item.status);
+
+        if (nextStatus === currentStatus) {
+            cancelStatusEdit();
+            return;
+        }
+
+        const proceed = (reason?: string) => {
+            setStatusLoadingId(item.id);
+            updateLoanStatus(item.id, nextStatus, { reason });
+        };
+
+        if (nextStatus === 'ditolak') {
+            setRejectionTarget(item);
+            setRejectModalOpen(true);
+            return;
+        }
+
+        proceed();
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -358,6 +492,7 @@ export default function AdminDataPeminjamanPage() {
                                     </th>
                                     <th className="px-2 py-4">No</th>
                                     <th className="px-4 py-4">Aksi</th>
+                                    <th className="px-4 py-4">Status</th>
                                     <th className="px-4 py-4">Nama Barang</th>
                                     <th className="px-4 py-4">Peminjam</th>
                                     <th className="px-4 py-4">Jumlah</th>
@@ -371,6 +506,7 @@ export default function AdminDataPeminjamanPage() {
                                 <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
                                     <th className="px-6 py-3" />
                                     <th className="px-2 py-3" />
+                                    <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
                                     <th className="px-4 py-3" colSpan={2}>
                                         <input
@@ -391,7 +527,7 @@ export default function AdminDataPeminjamanPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => {
+                                {localItems.map((item, index) => {
                                     const isSelected = selected.includes(
                                         item.id,
                                     );
@@ -417,32 +553,6 @@ export default function AdminDataPeminjamanPage() {
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2 text-[#1A3263]">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleMarkComplete(
-                                                                item.id,
-                                                            )
-                                                        }
-                                                        title="Setujui"
-                                                        aria-label="Setujui"
-                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#D1FAE5] text-[#047857] transition hover:bg-[#DCFCE7]"
-                                                    >
-                                                        <CheckCircle2 className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleCancel(
-                                                                item.id,
-                                                            )
-                                                        }
-                                                        title="Batalkan"
-                                                        aria-label="Batalkan"
-                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#FDE2E2] text-[#B91C1C] transition hover:bg-[#FEE2E2]"
-                                                    >
-                                                        <XCircle className="h-4 w-4" />
-                                                    </button>
                                                     <Link
                                                         href={`/admin/peminjaman/data/${item.id}`}
                                                         title="Detail"
@@ -475,6 +585,97 @@ export default function AdminDataPeminjamanPage() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4 text-[#1A3263]">
+                                                {editingStatusId === item.id ? (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <select
+                                                            value={
+                                                                pendingStatus
+                                                            }
+                                                            onChange={(event) =>
+                                                                setPendingStatus(
+                                                                    event.target
+                                                                        .value as LoanStatus,
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                                            disabled={
+                                                                statusLoadingId ===
+                                                                item.id
+                                                            }
+                                                            autoFocus
+                                                        >
+                                                            {statusOptions.map(
+                                                                (option) => (
+                                                                    <option
+                                                                        key={
+                                                                            option.value
+                                                                        }
+                                                                        value={
+                                                                            option.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            option.label
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                submitStatusEdit(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                statusLoadingId ===
+                                                                item.id
+                                                            }
+                                                            className={`rounded-2xl px-3 py-2 text-xs font-semibold text-white transition ${
+                                                                statusLoadingId ===
+                                                                item.id
+                                                                    ? 'bg-slate-300'
+                                                                    : 'bg-[#1A3263] hover:bg-[#0F1D3A]'
+                                                            }`}
+                                                        >
+                                                            {statusLoadingId ===
+                                                            item.id
+                                                                ? 'Menyimpan...'
+                                                                : 'Simpan'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={
+                                                                cancelStatusEdit
+                                                            }
+                                                            disabled={
+                                                                statusLoadingId ===
+                                                                item.id
+                                                            }
+                                                            className="rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs font-semibold text-[#1A3263] transition hover:bg-[#F5F7FB]"
+                                                        >
+                                                            Batal
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            beginStatusEdit(
+                                                                item,
+                                                            )
+                                                        }
+                                                        className="text-left"
+                                                        title="Ubah status peminjaman"
+                                                    >
+                                                        {renderStatusBadge(
+                                                            item.status,
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
                                                 <p className="font-semibold">
                                                     {item.nama_barang}
                                                 </p>
@@ -505,10 +706,10 @@ export default function AdminDataPeminjamanPage() {
                                         </tr>
                                     );
                                 })}
-                                {items.length === 0 ? (
+                                {localItems.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={8}
+                                            colSpan={9}
                                             className="px-6 py-10 text-center text-sm text-[#547792]"
                                         >
                                             Tidak ada data peminjaman.
@@ -520,10 +721,18 @@ export default function AdminDataPeminjamanPage() {
                     </div>
 
                     <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data
+                        Menampilkan {localItems.length} data
                     </div>
                 </div>
             </div>
+            <FormPenolakan
+                open={rejectModalOpen}
+                loading={Boolean(
+                    rejectionTarget && statusLoadingId === rejectionTarget.id,
+                )}
+                onClose={cancelRejectModal}
+                onSubmit={handleRejectSubmit}
+            />
         </AppLayout>
     );
 }

@@ -46,6 +46,7 @@ class PeminjamanController extends Controller
                 'keperluan' => $loan->keperluan,
                 'status' => $loan->status,
                 'denda_per_hari' => $loan->denda_per_hari ?? 0,
+                'alasan_penolakan' => $loan->alasan_penolakan,
             ];
         })->values()->all();
 

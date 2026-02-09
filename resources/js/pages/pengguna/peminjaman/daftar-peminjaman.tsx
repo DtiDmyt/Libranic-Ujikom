@@ -14,6 +14,7 @@ type LoanRow = {
     status: string;
     keperluan: string;
     denda_per_hari: number;
+    alasan_penolakan?: string | null;
 };
 
 type StatusOption = {
@@ -66,6 +67,8 @@ export default function PenggunaDaftarPeminjamanPage() {
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
     }, [filters.search]);
+
+    const hasRejectedItem = items.some((item) => item.status === 'ditolak');
 
     const visitWithFilters = useCallback(
         (overrides?: Partial<{ search: string; status: string }>) => {
@@ -150,6 +153,11 @@ export default function PenggunaDaftarPeminjamanPage() {
                                     <th className="px-4 py-4">Tanggal</th>
                                     <th className="px-4 py-4">Denda / Hari</th>
                                     <th className="px-4 py-4">Status</th>
+                                    {hasRejectedItem ? (
+                                        <th className="px-4 py-4">
+                                            Alasan Penolakan
+                                        </th>
+                                    ) : null}
                                 </tr>
 
                                 <tr className="bg-white text-[11px] font-normal text-[#547792]">
@@ -188,6 +196,7 @@ export default function PenggunaDaftarPeminjamanPage() {
                                             ))}
                                         </select>
                                     </th>
+                                    {hasRejectedItem ? <th /> : null}
                                 </tr>
                             </thead>
 
@@ -265,6 +274,22 @@ export default function PenggunaDaftarPeminjamanPage() {
                                                     'Menunggu'}
                                             </span>
                                         </td>
+                                        {hasRejectedItem ? (
+                                            <td className="px-4 py-4 text-sm text-[#1A3263]">
+                                                {item.status === 'ditolak' ? (
+                                                    <>
+                                                        <p className="font-semibold">
+                                                            {item.alasan_penolakan?.trim() ||
+                                                                'Tidak ada alasan yang dicatat.'}
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-[#94A3B8]">
+                                                        -
+                                                    </span>
+                                                )}
+                                            </td>
+                                        ) : null}
                                     </tr>
                                 ))}
 

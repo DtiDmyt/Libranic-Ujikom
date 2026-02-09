@@ -74,7 +74,7 @@ class PeminjamanController extends Controller
     public function updateStatus(Request $request, Peminjaman $loan): JsonResponse
     {
         $data = $request->validate([
-            'status' => ['required', 'in:disetujui,ditolak'],
+            'status' => ['required', 'in:menunggu,disetujui,ditolak'],
             'reason' => ['required_if:status,ditolak', 'string', 'max:500'],
         ]);
 
