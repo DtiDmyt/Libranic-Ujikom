@@ -1,7 +1,10 @@
-import { Head } from '@inertiajs/react';
-import { Eye, Plus, Trash2 } from 'lucide-react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
+import { CheckCircle, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: '/admin/dashboard' },
@@ -9,88 +12,286 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Data Pengembalian', href: '/admin/peminjaman/pengembalian' },
 ];
 
-type LoanStatus = 'menunggu' | 'disetujui' | 'ditolak';
-
-type LoanRow = {
-    id: number;
-    nama_barang: string;
-    peminjam: string;
-    kelas: string;
-    jumlah: number;
-    tanggal_pinjam: string;
-    tanggal_pengembalian: string;
-    status: LoanStatus;
-};
-
-const staticLoans: LoanRow[] = [
-    {
-        id: 1,
-        nama_barang: 'Bor Listrik Bosch',
-        peminjam: 'Aldo Wiranata',
-        kelas: 'X PPLG 1',
-        jumlah: 2,
-        tanggal_pinjam: '2026-02-01',
-        tanggal_pengembalian: '2026-02-08',
-        status: 'menunggu',
-    },
-    {
-        id: 2,
-        nama_barang: 'Mesin Las Panasonic',
-        peminjam: 'Naila Ramadhani',
-        kelas: 'XI ANM 2',
-        jumlah: 1,
-        tanggal_pinjam: '2026-02-03',
-        tanggal_pengembalian: '2026-02-10',
-        status: 'disetujui',
-    },
-    {
-        id: 3,
-        nama_barang: 'Senter Industri Dewalt',
-        peminjam: 'Rafi Pratama',
-        kelas: 'XII BCF 1',
-        jumlah: 3,
-        tanggal_pinjam: '2026-02-05',
-        tanggal_pengembalian: '2026-02-12',
-        status: 'ditolak',
-    },
-];
-
-const statusLabels: Record<LoanStatus, string> = {
-    menunggu: 'Menunggu Persetujuan',
-    disetujui: 'Disetujui',
-    ditolak: 'Ditolak',
-};
-
-const statusStyles: Record<LoanStatus, string> = {
-    menunggu: 'bg-[#FEF3C7] text-[#C2410C]',
-    disetujui: 'bg-[#ECFDF5] text-[#065F46]',
-    ditolak: 'bg-[#FEE2E2] text-[#991B1B]',
-};
-
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
     dateStyle: 'medium',
 });
 
-const formatDate = (value: string) => dateFormatter.format(new Date(value));
+const formatDate = (value?: string | null) =>
+    value ? dateFormatter.format(new Date(value)) : '-';
 
-const renderStatusBadge = (status: LoanStatus) => (
-    <span
-        className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[status]}`}
-    >
+type ReturnStatus = 'menunggu' | 'tepat waktu' | 'telat' | 'rusak' | 'hilang';
+
+type ReturnRow = {
+    pengembalian_id: number;
+    loan_id: number;
+    nama_barang: string;
+    peminjam: string;
+    kelas: string;
+    jumlah: number;
+    batas_peminjaman?: string | null;
+    tanggal_dikembalikan?: string | null;
+    status: ReturnStatus;
+};
+
+const statusConfig: Record<
+    ReturnStatus,
+    { label: string; palette: string; dot: string }
+> = {
+    menunggu: {
+        label: 'Proses Pengecekan',
+        palette: 'bg-[#FEF3C7] text-[#C2410C]',
+        dot: 'bg-[#C2410C]',
+    },
+    'tepat waktu': {
+        label: 'Tepat Waktu',
+        palette: 'bg-[#DCFCE7] text-[#065F46]',
+        dot: 'bg-[#16A34A]',
+    },
+    telat: {
+        label: 'Telat',
+        palette: 'bg-[#FEE2E2] text-[#991B1B]',
+        dot: 'bg-[#DC2626]',
+    },
+    rusak: {
+        label: 'Rusak',
+        palette: 'bg-[#FEF3C7] text-[#C2410C]',
+        dot: 'bg-[#C2410C]',
+    },
+    hilang: {
+        label: 'Hilang',
+        palette: 'bg-[#FEE2E2] text-[#991B1B]',
+        dot: 'bg-[#DC2626]',
+    },
+};
+
+const statusOptions: { value: ReturnStatus; label: string }[] = (
+    Object.keys(statusConfig) as ReturnStatus[]
+).map((value) => ({
+    value,
+    label: statusConfig[value].label,
+}));
+
+const statusFilterOptions: { value: ReturnStatus | 'semua'; label: string }[] =
+    [{ value: 'semua', label: 'Semua Status' }, ...statusOptions];
+
+type PageProps = SharedData & {
+    items: ReturnRow[];
+    filters: {
+        search?: string | null;
+        status?: ReturnStatus | 'semua';
+    };
+};
+
+const renderStatusBadge = (status: ReturnStatus) => {
+    const metadata = statusConfig[status] ?? statusConfig.menunggu;
+    return (
         <span
-            className={`h-2.5 w-2.5 rounded-full ${
-                status === 'disetujui'
-                    ? 'bg-[#059669]'
-                    : status === 'ditolak'
-                      ? 'bg-[#B91C1C]'
-                      : 'bg-[#F97316]'
-            }`}
-        />
-        {statusLabels[status]}
-    </span>
-);
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${metadata.palette}`}
+        >
+            <span className={`h-2.5 w-2.5 rounded-full ${metadata.dot}`} />
+            {metadata.label}
+        </span>
+    );
+};
 
 export default function AdminDataPengembalianPage() {
+    const { items, filters } = usePage<PageProps>().props;
+    const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
+    const [statusFilter, setStatusFilter] = useState<ReturnStatus | 'semua'>(
+        filters.status ?? 'semua',
+    );
+    const [selected, setSelected] = useState<number[]>([]);
+    const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
+    const [pendingStatus, setPendingStatus] =
+        useState<ReturnStatus>('menunggu');
+    const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+    const [bulkLoading, setBulkLoading] = useState(false);
+
+    const visitWithFilters = (overrides?: {
+        search?: string;
+        status?: ReturnStatus | 'semua';
+    }) => {
+        router.get(
+            '/admin/peminjaman/pengembalian',
+            {
+                search: overrides?.search ?? searchTerm,
+                status: overrides?.status ?? statusFilter,
+            },
+            {
+                preserveState: true,
+                replace: true,
+            },
+        );
+    };
+
+    useEffect(() => {
+        setSearchTerm(filters.search ?? '');
+        setStatusFilter(filters.status ?? 'semua');
+    }, [filters.search, filters.status]);
+
+    useEffect(() => {
+        if (
+            searchTerm === (filters.search ?? '') &&
+            statusFilter === (filters.status ?? 'semua')
+        ) {
+            return;
+        }
+
+        const timeout = window.setTimeout(() => {
+            visitWithFilters();
+        }, 400);
+        return () => window.clearTimeout(timeout);
+    }, [searchTerm, statusFilter, filters.search, filters.status]);
+
+    useEffect(() => {
+        setSelected((prev) =>
+            prev.filter((id) =>
+                items.some((item) => item.pengembalian_id === id),
+            ),
+        );
+    }, [items]);
+
+    const allDisplayedSelected =
+        items.length > 0 &&
+        items.every((item) => selected.includes(item.pengembalian_id));
+    const hasSelected = selected.length > 0;
+
+    const toggleSelect = (id: number) => {
+        setSelected((prev) =>
+            prev.includes(id)
+                ? prev.filter((value) => value !== id)
+                : [...prev, id],
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (allDisplayedSelected) {
+            setSelected((prev) =>
+                prev.filter(
+                    (value) =>
+                        !items.some((item) => item.pengembalian_id === value),
+                ),
+            );
+            return;
+        }
+        setSelected((prev) => [
+            ...new Set([...prev, ...items.map((item) => item.pengembalian_id)]),
+        ]);
+    };
+
+    const beginStatusEdit = (item: ReturnRow) => {
+        setEditingStatusId(item.pengembalian_id);
+        setPendingStatus(item.status);
+    };
+
+    const cancelStatusEdit = () => {
+        setEditingStatusId(null);
+    };
+
+    const submitStatusEdit = async (item: ReturnRow) => {
+        setStatusLoadingId(item.pengembalian_id);
+        try {
+            await axios.patch(
+                `/admin/peminjaman/pengembalian/${item.pengembalian_id}/status`,
+                { status: pendingStatus },
+            );
+            Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
+            setEditingStatusId(null);
+            router.reload({
+                preserveState: true,
+                preserveScroll: true,
+            });
+        } catch (error) {
+            Swal.fire('Gagal', 'Tidak dapat memperbarui status.', 'error');
+        } finally {
+            setStatusLoadingId(null);
+        }
+    };
+
+    const handleDelete = (id: number) => {
+        Swal.fire({
+            title: 'Hapus Pengembalian',
+            text: 'Yakin ingin menghapus catatan pengembalian ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Hapus',
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+            router.delete(`/admin/peminjaman/pengembalian/${id}`, {
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    Swal.fire(
+                        'Terhapus',
+                        'Data pengembalian dihapus.',
+                        'success',
+                    );
+                },
+                onError: () => {
+                    Swal.fire('Gagal', 'Tidak dapat menghapus data.', 'error');
+                },
+            });
+        });
+    };
+
+    const handleBulkDelete = () => {
+        if (!hasSelected) {
+            return;
+        }
+        Swal.fire({
+            title: 'Hapus data terpilih',
+            text: 'Hapus semua catatan pengembalian yang dipilih?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Hapus',
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+            router.delete('/admin/peminjaman/pengembalian/bulk-delete', {
+                data: { ids: selected },
+                preserveState: true,
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected([]);
+                    Swal.fire('Terhapus', 'Data terpilih dihapus.', 'success');
+                },
+                onError: () => {
+                    Swal.fire('Gagal', 'Tidak dapat menghapus data.', 'error');
+                },
+            });
+        });
+    };
+
+    const handleBulkConfirm = async () => {
+        if (!hasSelected) {
+            return;
+        }
+        setBulkLoading(true);
+        try {
+            await axios.patch('/admin/peminjaman/pengembalian/bulk-status', {
+                ids: selected,
+                status: 'tepat waktu',
+            });
+            setSelected([]);
+            Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
+            router.reload({
+                preserveState: true,
+                preserveScroll: true,
+            });
+        } catch (error) {
+            Swal.fire('Gagal', 'Tidak dapat memperbarui status.', 'error');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Data Pengembalian" />
@@ -105,104 +306,320 @@ export default function AdminDataPengembalianPage() {
                         </h1>
                     </div>
                     <p className="mt-1 text-sm text-[#547792]">
-                        Tampilan ini disamakan dengan daftar peminjaman, masih
-                        statis untuk ilustrasi pengembalian.
+                        Pantau pengembalian dengan status pemeriksaan serta
+                        catat tanggal ketika pengguna menyerahkan alat.
                     </p>
                 </div>
 
                 <div className="rounded-3xl border border-[#E8E2DB] bg-white shadow-sm">
                     <div className="space-y-4 border-b border-[#E8E2DB] p-6">
                         <div className="flex flex-wrap items-center gap-3">
-                            <button
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30"
+                            <Link
+                                href="/admin/peminjaman/data/tambah"
+                                className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#547792]"
                             >
                                 <Plus className="h-4 w-4" /> Tambah data
-                            </button>
+                            </Link>
                             <button
                                 type="button"
-                                className="inline-flex items-center gap-2 rounded-xl bg-[#F87171] px-4 py-2 text-sm font-semibold text-white"
+                                disabled={!hasSelected}
+                                onClick={handleBulkDelete}
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                    hasSelected
+                                        ? 'bg-[#F87171] text-white shadow-sm hover:bg-[#DC2626]'
+                                        : 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                }`}
                             >
                                 <Trash2 className="h-4 w-4" /> Hapus
                             </button>
+                            <button
+                                type="button"
+                                disabled={!hasSelected || bulkLoading}
+                                onClick={handleBulkConfirm}
+                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                                    hasSelected && !bulkLoading
+                                        ? 'bg-[#CDE8D6] text-[#1A3263] hover:bg-[#B5DBBF]'
+                                        : 'cursor-not-allowed bg-slate-100 text-slate-400'
+                                }`}
+                            >
+                                <CheckCircle className="h-4 w-4" /> Tandai Tepat
+                                Waktu
+                            </button>
+                            <div className="mt-3 w-full border-t border-dashed border-[#E8E2DB] md:hidden" />
                             <div className="ml-auto text-xs font-semibold tracking-wide text-[#547792] uppercase">
-                                Statis • ilustrasi
+                                {hasSelected
+                                    ? `${selected.length} data dipilih`
+                                    : 'Pilih data untuk aksi cepat'}
                             </div>
                         </div>
                     </div>
 
                     <div className="overflow-x-auto [-ms-overflow-style:'none'] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        <table className="min-w-[1200px] divide-y divide-[#E8E2DB]">
+                        <table className="min-w-[1100px] divide-y divide-[#E8E2DB]">
                             <thead className="text-left text-xs font-semibold tracking-wide text-[#547792] uppercase">
                                 <tr className="bg-[#E8E2DB]">
-                                    <th className="px-6 py-4">No</th>
+                                    <th className="px-6 py-4">
+                                        <input
+                                            type="checkbox"
+                                            className="size-4 rounded border-[#1A3263] text-[#1A3263] focus:ring-[#1A3263]"
+                                            checked={allDisplayedSelected}
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </th>
+                                    <th className="px-2 py-4">No</th>
                                     <th className="px-4 py-4">Aksi</th>
                                     <th className="px-4 py-4">Status</th>
                                     <th className="px-4 py-4">Nama Barang</th>
-                                    <th className="px-4 py-4">Peminjam</th>
+                                    <th className="px-4 py-4">Nama Peminjam</th>
                                     <th className="px-4 py-4">Jumlah</th>
                                     <th className="px-4 py-4">
-                                        Tanggal Pinjam
+                                        Batas Peminjaman
                                     </th>
                                     <th className="px-4 py-4">
-                                        Tanggal Pengembalian
+                                        Tanggal Dikembalikan
                                     </th>
+                                </tr>
+                                <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
+                                    <th className="px-6 py-3" />
+                                    <th className="px-2 py-3" />
+                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3" colSpan={2}>
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(event) =>
+                                                setSearchTerm(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
+                                            placeholder="Cari nama barang / peminjam"
+                                        />
+                                    </th>
+                                    <th className="px-4 py-3">
+                                        <select
+                                            value={statusFilter}
+                                            onChange={(event) =>
+                                                setStatusFilter(
+                                                    event.target.value as
+                                                        | ReturnStatus
+                                                        | 'semua',
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                        >
+                                            {statusFilterOptions.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </th>
+                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {staticLoans.map((item, index) => (
-                                    <tr
-                                        key={item.id}
-                                        className="text-sm hover:bg-[#F8F6F1]"
-                                    >
-                                        <td className="px-6 py-4 font-semibold text-[#1A3263]">
-                                            {index + 1}
-                                        </td>
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center gap-2 text-[#1A3263]">
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] transition hover:bg-[#EEF2FF]"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-4 text-[#1A3263]">
-                                            {renderStatusBadge(item.status)}
-                                        </td>
-                                        <td className="px-4 py-4 text-[#1A3263]">
-                                            <p className="font-semibold">
-                                                {item.nama_barang}
-                                            </p>
-                                        </td>
-                                        <td className="px-4 py-4 text-[#1A3263]">
-                                            <p className="font-medium">
-                                                {item.peminjam}
-                                            </p>
-                                            <p className="text-xs text-[#547792]">
-                                                {item.kelas}
-                                            </p>
-                                        </td>
-                                        <td className="px-4 py-4 text-[#1A3263]">
-                                            {item.jumlah}
-                                        </td>
-                                        <td className="px-4 py-4 text-[#547792]">
-                                            {formatDate(item.tanggal_pinjam)}
-                                        </td>
-                                        <td className="px-4 py-4 text-[#547792]">
-                                            {formatDate(
-                                                item.tanggal_pengembalian,
-                                            )}
+                                {items.map((item, index) => {
+                                    const isSelected = selected.includes(
+                                        item.pengembalian_id,
+                                    );
+                                    return (
+                                        <tr
+                                            key={item.pengembalian_id}
+                                            className={`text-sm transition hover:bg-[#F8F6F1] ${
+                                                isSelected ? 'bg-[#FFF5DC]' : ''
+                                            }`}
+                                        >
+                                            <td className="px-6 py-4">
+                                                <input
+                                                    type="checkbox"
+                                                    className="size-4 rounded border-[#1A3263] text-[#1A3263] focus:ring-[#1A3263]"
+                                                    checked={isSelected}
+                                                    onChange={() =>
+                                                        toggleSelect(
+                                                            item.pengembalian_id,
+                                                        )
+                                                    }
+                                                />
+                                            </td>
+                                            <td className="px-2 py-4 font-semibold text-[#1A3263]">
+                                                {index + 1}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center gap-2 text-[#1A3263]">
+                                                    {item.loan_id && (
+                                                        <Link
+                                                            href={`/admin/peminjaman/data/${item.loan_id}`}
+                                                            title="Detail"
+                                                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] transition hover:bg-[#EEF2FF]"
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Link>
+                                                    )}
+                                                    {item.loan_id && (
+                                                        <Link
+                                                            href={`/admin/peminjaman/data/${item.loan_id}/edit`}
+                                                            title="Edit"
+                                                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] transition hover:bg-[#EEF3FF]"
+                                                        >
+                                                            <PencilLine className="h-4 w-4" />
+                                                        </Link>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                item.pengembalian_id,
+                                                            )
+                                                        }
+                                                        title="Hapus"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#FEE2E2] text-[#B91C1C] transition hover:bg-[#FEE2E2]"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {editingStatusId ===
+                                                item.pengembalian_id ? (
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <select
+                                                            value={
+                                                                pendingStatus
+                                                            }
+                                                            onChange={(event) =>
+                                                                setPendingStatus(
+                                                                    event.target
+                                                                        .value as ReturnStatus,
+                                                                )
+                                                            }
+                                                            className="rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                                            autoFocus
+                                                        >
+                                                            {statusOptions.map(
+                                                                (option) => (
+                                                                    <option
+                                                                        key={
+                                                                            option.value
+                                                                        }
+                                                                        value={
+                                                                            option.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            option.label
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                submitStatusEdit(
+                                                                    item,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                statusLoadingId ===
+                                                                item.pengembalian_id
+                                                            }
+                                                            className={`rounded-2xl px-3 py-2 text-xs font-semibold text-white ${
+                                                                statusLoadingId ===
+                                                                item.pengembalian_id
+                                                                    ? 'bg-slate-300'
+                                                                    : 'bg-[#1A3263] hover:bg-[#0F1D3A]'
+                                                            }`}
+                                                        >
+                                                            {statusLoadingId ===
+                                                            item.pengembalian_id
+                                                                ? 'Menyimpan...'
+                                                                : 'Simpan'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={
+                                                                cancelStatusEdit
+                                                            }
+                                                            disabled={
+                                                                statusLoadingId ===
+                                                                item.pengembalian_id
+                                                            }
+                                                            className="rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs font-semibold text-[#1A3263] transition hover:bg-[#F5F7FB]"
+                                                        >
+                                                            Batal
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            beginStatusEdit(
+                                                                item,
+                                                            )
+                                                        }
+                                                        className="text-left"
+                                                        title="Ubah status pengembalian"
+                                                    >
+                                                        {renderStatusBadge(
+                                                            item.status,
+                                                        )}
+                                                    </button>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                <p className="font-semibold">
+                                                    {item.nama_barang}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                <p className="font-medium">
+                                                    {item.peminjam}
+                                                </p>
+                                                <p className="text-xs text-[#547792]">
+                                                    {item.kelas}
+                                                </p>
+                                            </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {item.jumlah}
+                                            </td>
+                                            <td className="px-4 py-4 text-[#547792]">
+                                                {formatDate(
+                                                    item.batas_peminjaman,
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 text-[#547792]">
+                                                {formatDate(
+                                                    item.tanggal_dikembalikan,
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {items.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={9}
+                                            className="px-6 py-10 text-center text-sm text-[#547792]"
+                                        >
+                                            Belum ada pengembalian untuk
+                                            ditampilkan.
                                         </td>
                                     </tr>
-                                ))}
+                                )}
                             </tbody>
                         </table>
                     </div>
 
                     <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {staticLoans.length} data statis
+                        Menampilkan {items.length} data
                     </div>
                 </div>
             </div>

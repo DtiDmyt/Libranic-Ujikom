@@ -72,6 +72,7 @@ class PengembalianController extends Controller
             'kondisi' => $data['kondisi'],
             'catatan' => $data['catatan'] ?? null,
             'lampiran_path' => $lampiranPath,
+            'status' => 'menunggu',
         ]);
 
         $loan->status = 'dikembalikan';

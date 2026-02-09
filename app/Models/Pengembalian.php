@@ -19,6 +19,7 @@ class Pengembalian extends Model
         'kondisi',
         'catatan',
         'lampiran_path',
+        'status',
     ];
 
     protected $casts = [

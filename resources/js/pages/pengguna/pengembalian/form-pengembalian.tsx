@@ -1,6 +1,6 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { ArrowLeft, Image as ImageIcon, UploadCloud } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { ArrowLeft, Image as ImageIcon } from 'lucide-react';
 import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
@@ -77,6 +77,31 @@ function InfoField({ label, value }: InfoFieldProps) {
     );
 }
 
+const finalStatusConfigs: Record<string, { label: string; className: string }> =
+    {
+        'tepat waktu': {
+            label: 'Tepat Waktu',
+            className:
+                'border border-emerald-200 bg-emerald-50 text-emerald-700',
+        },
+        telat: {
+            label: 'Telat',
+            className: 'border border-rose-200 bg-rose-50 text-rose-700',
+        },
+        terlambat: {
+            label: 'Telat',
+            className: 'border border-rose-200 bg-rose-50 text-rose-700',
+        },
+        rusak: {
+            label: 'Rusak',
+            className: 'border border-amber-200 bg-amber-50 text-amber-700',
+        },
+        hilang: {
+            label: 'Hilang',
+            className: 'border border-slate-300 bg-slate-100 text-slate-700',
+        },
+    };
+
 export default function PenggunaFormPengembalianPage() {
     const { borrower, alat, loan } = usePage<PageProps>().props;
     const form = useForm<ReturnFormFields>({
@@ -87,12 +112,8 @@ export default function PenggunaFormPengembalianPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const statusLabel = useMemo(() => {
-        if (!loan.status) {
-            return 'Menunggu pengembalian';
-        }
-        return loan.status.charAt(0).toUpperCase() + loan.status.slice(1);
-    }, [loan.status]);
+    const normalizedLoanStatus = loan.status?.trim().toLowerCase() ?? '';
+    const finalStatusEntry = finalStatusConfigs[normalizedLoanStatus];
 
     useEffect(() => {
         return () => {
@@ -208,8 +229,25 @@ export default function PenggunaFormPengembalianPage() {
                                 <p className="text-xs font-semibold tracking-[0.25em] text-[#8E7661] uppercase">
                                     Status Peminjaman
                                 </p>
-                                <p className="mt-1 inline-flex rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-semibold text-[#1A3263]">
-                                    {statusLabel}
+                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                    <span className="inline-flex items-center gap-2 rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-semibold text-[#1A3263]">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-[#FBBF24]" />
+                                        Proses pengecekan
+                                    </span>
+                                    <span className="text-xs font-semibold text-[#C4A484] uppercase">
+                                        &gt;
+                                    </span>
+                                    <span className="inline-flex items-center gap-2 rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-semibold text-[#1A3263]">
+                                        Menunggu admin / petugas merubah status
+                                    </span>
+                                </div>
+                                <p className="mt-1 text-xs text-[#547792]">
+                                    Admin atau petugas akan menentukan apakah
+                                    pengembalian tepat waktu, telat, rusak, atau
+                                    hilang setelah pengecekan selesai.
+                                    {finalStatusEntry
+                                        ? ` Status terakhir yang tercatat: ${finalStatusEntry.label}.`
+                                        : ''}
                                 </p>
                             </div>
                         </div>
@@ -264,16 +302,16 @@ export default function PenggunaFormPengembalianPage() {
                                 Unggah foto kondisi terbaru alat. Format JPG,
                                 PNG, atau WEBP maksimal 2MB.
                             </p>
-                            <div className="rounded-3xl border border-dashed border-[#D7DFEE] bg-[#F8FAFC] p-4">
+                            <div className="space-y-3 rounded-3xl border border-dashed border-[#D7DFEE] bg-[#F8FAFC] p-4">
                                 <button
                                     type="button"
                                     onClick={() =>
                                         fileInputRef.current?.click()
                                     }
-                                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#1A3263] shadow-sm transition hover:bg-[#EEF2FF]"
+                                    className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[#1A3263] px-6 py-4 text-sm font-semibold text-white transition hover:bg-[#172550]"
                                 >
-                                    <UploadCloud className="h-4 w-4" /> Pilih
-                                    gambar
+                                    <ImageIcon className="h-5 w-5" /> Unggah
+                                    Foto Bukti
                                 </button>
                                 <input
                                     ref={fileInputRef}

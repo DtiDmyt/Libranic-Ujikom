@@ -40,7 +40,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
             Route::get('/', [PenggunaPeminjamanController::class, 'index'])
                 ->name('index');
-            Route::get('riwayat', [PenggunaPeminjamanController::class, 'index'])
+            Route::get('daftar-peminjaman', [PenggunaPeminjamanController::class, 'index'])
+                ->name('daftar');
+            Route::get('riwayat-peminjaman/{loan}', [PenggunaPeminjamanController::class, 'showRiwayat'])
+                ->name('riwayat.detail');
+            Route::get('riwayat-peminjaman', [PenggunaPeminjamanController::class, 'riwayat'])
                 ->name('riwayat');
             Route::get('form', [PenggunaPeminjamanController::class, 'create'])
                 ->name('form');
@@ -95,9 +99,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('data/{loan}', [AdminPeminjamanController::class, 'update'])->name('data.update');
             Route::get('data/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('data.edit');
             Route::get('data/{loan}', [AdminPeminjamanController::class, 'show'])->name('data.show');
-            Route::get('pengembalian', function () {
-                return Inertia::render('admin/manajamen-peminjaman/data-pengembalian/daftar-pengembalian');
-            })->name('pengembalian.index');
+            Route::get('pengembalian', [AdminPeminjamanController::class, 'pengembalian'])
+                ->name('pengembalian.index');
+            Route::patch('pengembalian/{pengembalian}/status', [
+                AdminPeminjamanController::class,
+                'updateReturnStatus',
+            ])->name('pengembalian.status');
+            Route::patch('pengembalian/bulk-status', [
+                AdminPeminjamanController::class,
+                'bulkUpdateReturnStatus',
+            ])->name('pengembalian.bulk-status');
+            Route::delete('pengembalian/{pengembalian}', [
+                AdminPeminjamanController::class,
+                'destroyReturn',
+            ])->name('pengembalian.destroy');
+            Route::delete('pengembalian/bulk-delete', [
+                AdminPeminjamanController::class,
+                'bulkDeleteReturns',
+            ])->name('pengembalian.bulk-delete');
             Route::patch('data/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('data.status');
         });
     });

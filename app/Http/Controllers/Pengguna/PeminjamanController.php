@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Pengguna;
 
 use App\Http\Controllers\Controller;
 use App\Models\DaftarBarang;
+use App\Models\Pengembalian;
 use App\Models\Peminjaman;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,10 +24,18 @@ class PeminjamanController extends Controller
         $search = $request->string('search')->toString();
         $statusFilter = $request->string('status')->toString() ?: 'semua';
 
-        $query = Peminjaman::with('alat')->where('user_id', $user->id);
+        $allowedStatuses = ['menunggu', 'disetujui'];
+        $query = Peminjaman::with('alat')
+            ->where('user_id', $user->id)
+            ->whereIn('status', $allowedStatuses);
 
         if ($statusFilter !== 'semua') {
-            $query->where('status', $statusFilter);
+            $statusFilter = in_array($statusFilter, $allowedStatuses, true)
+                ? $statusFilter
+                : 'semua';
+            if ($statusFilter !== 'semua') {
+                $query->where('status', $statusFilter);
+            }
         }
 
         if ($search !== '') {
@@ -54,8 +64,6 @@ class PeminjamanController extends Controller
             ['value' => 'semua', 'label' => 'Semua Status'],
             ['value' => 'menunggu', 'label' => 'Menunggu Persetujuan'],
             ['value' => 'disetujui', 'label' => 'Disetujui'],
-            ['value' => 'dikembalikan', 'label' => 'Dikembalikan'],
-            ['value' => 'ditolak', 'label' => 'Ditolak'],
         ];
 
         return Inertia::render('pengguna/peminjaman/daftar-peminjaman', [
@@ -127,6 +135,94 @@ class PeminjamanController extends Controller
             ->with('success', 'Permohonan peminjaman berhasil dikirim.');
     }
 
+    public function riwayat(): Response
+    {
+        $user = request()->user();
+        $loans = Peminjaman::with(['alat', 'pengembalian'])
+            ->where('user_id', $user->id)
+            ->where(function ($query) {
+                $query->where('status', 'ditolak')
+                    ->orWhere('status', 'dikembalikan')
+                    ->orWhereHas('pengembalian', function (Builder $query) {
+                        $query->whereNotNull('tanggal_pengembalian');
+                    });
+            })
+            ->orderBy('tanggal_pinjam', 'desc')
+            ->get();
+
+        $items = $loans->map(function (Peminjaman $loan) {
+            $pengembalian = $loan->pengembalian;
+            $returnStatus = $loan->status === 'ditolak'
+                ? 'ditolak'
+                : ($pengembalian?->status ?? $this->determineReturnStatus($loan, $pengembalian));
+            $lateDays = $this->calculateLateDays($loan, $pengembalian);
+            $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
+
+            return [
+                'id' => $loan->id,
+                'nama_alat' => $loan->alat?->nama_alat ?? '-',
+                'nama_peminjam' => $loan->nama_peminjam ?? '-',
+                'jumlah' => $loan->jumlah_pinjam,
+                'batas_peminjaman' => $loan->tanggal_kembali?->toDateString(),
+                'tanggal_dikembalikan' => $pengembalian?->tanggal_pengembalian?->toDateString(),
+                'return_status' => $returnStatus,
+                'return_status_label' => $this->statusLabel($returnStatus),
+                'detail_url' => route('peminjaman.riwayat.detail', $loan),
+                'late_days' => $lateDays,
+                'penalty' => $penalty,
+                'kelas' => $loan->kelas ?? '-',
+                'kode_alat' => $loan->alat?->kode_alat ?? '-',
+                'lokasi' => $loan->alat?->ruangan ?? '-',
+                'pengembalian' => [
+                    'kondisi' => $pengembalian?->kondisi,
+                    'catatan' => $pengembalian?->catatan,
+                    'lampiran_url' => $pengembalian?->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
+                ],
+            ];
+        })->values()->all();
+
+        return Inertia::render('pengguna/riwayat-peminjaman/riwayat-peminjaman', [
+            'items' => $items,
+        ]);
+    }
+
+    public function showRiwayat(Request $request, Peminjaman $loan): Response
+    {
+        $user = $request->user();
+        abort_unless($loan->user_id === $user->id, 403);
+
+        $loan->loadMissing(['alat', 'pengembalian']);
+        $pengembalian = $loan->pengembalian;
+        $returnStatus = $this->determineReturnStatus($loan, $pengembalian);
+        $lateDays = $this->calculateLateDays($loan, $pengembalian);
+        $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
+
+        return Inertia::render('pengguna/riwayat-peminjaman/detail-riwayat-peminjaman', [
+            'loan' => [
+                'id' => $loan->id,
+                'nama_alat' => $loan->alat?->nama_alat ?? '-',
+                'kode_alat' => $loan->alat?->kode_alat ?? '-',
+                'lokasi' => $loan->alat?->ruangan ?? '-',
+                'nama_peminjam' => $loan->nama_peminjam ?? '-',
+                'kelas' => $loan->kelas ?? '-',
+                'jumlah' => $loan->jumlah_pinjam,
+                'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
+                'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
+                'denda_per_hari' => $loan->denda_per_hari ?? 0,
+            ],
+            'pengembalian' => [
+                'tanggal_pengembalian' => $pengembalian?->tanggal_pengembalian?->toDateString(),
+                'kondisi' => $pengembalian?->kondisi,
+                'catatan' => $pengembalian?->catatan,
+                'lampiran_url' => $pengembalian?->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
+            ],
+            'return_status' => $returnStatus,
+            'return_status_label' => $this->statusLabel($returnStatus),
+            'late_days' => $lateDays,
+            'penalty' => $penalty,
+        ]);
+    }
+
     public function returnForm(Request $request, Peminjaman $loan): Response
     {
         $user = $request->user();
@@ -155,5 +251,49 @@ class PeminjamanController extends Controller
                 'denda_per_hari' => $loan->denda_per_hari ?? 0,
             ],
         ]);
+    }
+
+    private function determineReturnStatus(Peminjaman $loan, ?Pengembalian $pengembalian): string
+    {
+        if (! $pengembalian || ! $pengembalian->tanggal_pengembalian) {
+            return 'menunggu';
+        }
+
+        $condition = strtolower($pengembalian->kondisi ?? '');
+        if ($condition === 'rusak') {
+            return 'rusak';
+        }
+
+        if ($condition === 'hilang') {
+            return 'hilang';
+        }
+
+        if ($loan->tanggal_kembali && $pengembalian->tanggal_pengembalian->greaterThan($loan->tanggal_kembali)) {
+            return 'telat';
+        }
+
+        return 'tepat waktu';
+    }
+
+    private function calculateLateDays(Peminjaman $loan, ?Pengembalian $pengembalian): int
+    {
+        if (! $pengembalian || ! $pengembalian->tanggal_pengembalian || ! $loan->tanggal_kembali) {
+            return 0;
+        }
+
+        $difference = $pengembalian->tanggal_pengembalian->diffInDays($loan->tanggal_kembali, false);
+        return max(0, $difference);
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'tepat waktu' => 'Tepat Waktu',
+            'terlambat' => 'Terlambat',
+            'rusak' => 'Rusak',
+            'hilang' => 'Hilang',
+            'ditolak' => 'Ditolak',
+            default => 'Menunggu Pengembalian',
+        };
     }
 }

@@ -209,12 +209,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         subItems: [
                             {
                                 title: 'Daftar Peminjaman',
-                                href: '/peminjaman',
+                                href: '/peminjaman/daftar-peminjaman',
                                 icon: SendHorizontal,
                             },
                             {
                                 title: 'Riwayat Peminjaman',
-                                href: '/peminjaman/riwayat',
+                                href: '/peminjaman/riwayat-peminjaman',
                                 icon: History,
                             },
                         ],
