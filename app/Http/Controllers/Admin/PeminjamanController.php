@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DaftarBarang;
 use App\Models\Peminjaman;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -88,43 +90,151 @@ class PeminjamanController extends Controller
 
     public function create(): Response
     {
+        $tools = $this->tools();
+        $borrowers = $this->borrowers();
+
         return Inertia::render('admin/manajamen-peminjaman/data-peminjaman/tambah-peminjaman', [
-            'borrowers' => $this->borrowers(),
-            'kelasOptions' => $this->kelasOptions(),
+            'borrowers' => $borrowers,
+            'kelasOptions' => $this->kelasOptions($borrowers),
             'defaultDates' => [
                 'tanggal_pinjam' => Carbon::today()->toDateString(),
                 'tanggal_pengembalian' => Carbon::today()->addDays(7)->toDateString(),
             ],
+            'tools' => $tools,
+            'toolCategories' => $this->toolCategories($tools),
         ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'peminjam_id' => ['required', 'exists:users,id'],
+            'daftarbarang_id' => ['required', 'exists:daftarbarang,id'],
+            'kategori_alat_id' => ['nullable', 'integer'],
+            'kelas' => ['nullable', 'string', 'max:255'],
+            'tanggal_pinjam' => ['required', 'date'],
+            'tanggal_pengembalian' => ['required', 'date', 'after_or_equal:tanggal_pinjam'],
+            'jumlah' => ['required', 'integer', 'min:1'],
+            'keterangan_pinjam' => ['required', 'string', 'max:1000'],
+        ], [
+            'tanggal_pengembalian.after_or_equal' => 'Tanggal pengembalian harus sama atau setelah tanggal pinjam.',
+        ]);
+
+        $borrower = User::find($validated['peminjam_id']);
+        $tool = DaftarBarang::find($validated['daftarbarang_id']);
+
+        Peminjaman::create([
+            'user_id' => $borrower?->id,
+            'daftarbarang_id' => $tool?->id,
+            'nama_peminjam' => $borrower?->name,
+            'nis_nip' => $borrower?->identitas ?? 'ADMIN-' . ($borrower?->id ?? '0'),
+            'kelas' => $borrower?->kelas ?? $validated['kelas'],
+            'jumlah_pinjam' => (int) $validated['jumlah'],
+            'tanggal_pinjam' => $validated['tanggal_pinjam'],
+            'tanggal_kembali' => $validated['tanggal_pengembalian'],
+            'keperluan' => $validated['keterangan_pinjam'],
+            'status' => 'menunggu',
+            'denda_per_hari' => $tool?->denda_keterlambatan ?? 0,
+        ]);
+
+        return redirect()
+            ->route('admin.peminjaman.data.index')
+            ->with('success', 'Peminjaman berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, Peminjaman $loan): RedirectResponse
+    {
+        $validated = $request->validate([
+            'peminjam_id' => ['required', 'exists:users,id'],
+            'daftarbarang_id' => ['required', 'exists:daftarbarang,id'],
+            'kategori_alat_id' => ['nullable', 'integer'],
+            'kelas' => ['nullable', 'string', 'max:255'],
+            'tanggal_pinjam' => ['required', 'date'],
+            'tanggal_pengembalian' => ['required', 'date', 'after_or_equal:tanggal_pinjam'],
+            'jumlah' => ['required', 'integer', 'min:1'],
+            'keterangan_pinjam' => ['required', 'string', 'max:1000'],
+        ], [
+            'tanggal_pengembalian.after_or_equal' => 'Tanggal pengembalian harus sama atau setelah tanggal pinjam.',
+        ]);
+
+        $borrower = User::find($validated['peminjam_id']);
+        $tool = DaftarBarang::find($validated['daftarbarang_id']);
+
+        $loan->update([
+            'user_id' => $borrower?->id,
+            'daftarbarang_id' => $tool?->id,
+            'nama_peminjam' => $borrower?->name ?? $loan->nama_peminjam,
+            'nis_nip' => $borrower?->identitas ?? $loan->nis_nip,
+            'kelas' => $borrower?->kelas ?? $validated['kelas'] ?? $loan->kelas,
+            'jumlah_pinjam' => (int) $validated['jumlah'],
+            'tanggal_pinjam' => $validated['tanggal_pinjam'],
+            'tanggal_kembali' => $validated['tanggal_pengembalian'],
+            'keperluan' => $validated['keterangan_pinjam'],
+            'denda_per_hari' => $tool?->denda_keterlambatan ?? $loan->denda_per_hari,
+        ]);
+
+        return redirect()
+            ->route('admin.peminjaman.data.index')
+            ->with('success', 'Data peminjaman berhasil diperbarui.');
     }
 
     public function edit(int $loanId): Response
     {
-        $loan = $this->sampleLoanById($loanId);
+        $loan = Peminjaman::with(['alat.kategoriAlat', 'user'])->findOrFail($loanId);
+        $tools = $this->tools();
+        $borrowers = $this->borrowers();
 
         return Inertia::render('admin/manajamen-peminjaman/data-peminjaman/edit-peminjaman', [
-            'borrowers' => $this->borrowers(),
-            'kelasOptions' => $this->kelasOptions(),
-            'loan' => $loan,
+            'borrowers' => $borrowers,
+            'kelasOptions' => $this->kelasOptions($borrowers),
+            'loan' => $this->formatLoanForForm($loan),
+            'tools' => $tools,
+            'toolCategories' => $this->toolCategories($tools),
         ]);
     }
 
     public function show(int $loanId): Response
     {
-        $loan = $this->sampleLoanDetail($loanId);
+        $loan = Peminjaman::with(['alat.kategoriAlat', 'user'])->findOrFail($loanId);
 
         return Inertia::render('admin/manajamen-peminjaman/data-peminjaman/detail-peminjaman', [
-            'loan' => array_merge($loan, [
-                'kode_transaksi' => sprintf('PM-%04d', $loan['id']),
-                'status' => 'berjalan',
-                'keterangan_pengembalian' => null,
-                'lampiran_url' => null,
-            ]),
+            'loan' => $this->formatLoanForDetail($loan),
             'history' => $this->extensionHistory(),
         ]);
     }
 
     private function borrowers(): array
+    {
+        $users = User::select('id', 'name', 'kelas')
+            ->orderBy('name')
+            ->get();
+
+        if ($users->isNotEmpty()) {
+            return $users->map(function (User $user) {
+                return [
+                    'id' => $user->id,
+                    'nama' => $user->name,
+                    'kelas' => $user->kelas,
+                ];
+            })->all();
+        }
+
+        return $this->sampleBorrowers();
+    }
+
+    private function kelasOptions(?array $borrowers = null): array
+    {
+        $borrowers = $borrowers ?? $this->borrowers();
+
+        return collect($borrowers)
+            ->pluck('kelas')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function sampleBorrowers(): array
     {
         return [
             ['id' => 1, 'nama' => 'Aldo Wiranata', 'kelas' => 'X PPLG 1'],
@@ -133,73 +243,150 @@ class PeminjamanController extends Controller
         ];
     }
 
-    private function kelasOptions(): array
+    private function tools(): array
     {
-        return array_unique(array_column($this->borrowers(), 'kelas'));
-    }
+        $items = DaftarBarang::with('kategoriAlat')
+            ->orderBy('nama_alat')
+            ->get();
 
-    private function sampleLoans(): array
-    {
+        if ($items->isNotEmpty()) {
+            return $items->map(function (DaftarBarang $item) {
+                return [
+                    'id' => $item->id,
+                    'nama' => $item->nama_alat,
+                    'kategori_id' => $item->kategori_alat_id ?? 0,
+                    'kategori_nama' => $item->kategoriAlat?->nama ?? 'Tanpa Kategori',
+                    'kode' => $item->kode_alat ?? sprintf('ALT-%04d', $item->id),
+                    'ruangan' => $item->ruangan ?? '-',
+                    'stok' => $item->stok ?? 0,
+                ];
+            })->all();
+        }
+
         return [
             [
-                'id' => 1,
-                'nama_barang' => 'Bor Listrik',
-                'peminjam' => 'Aldo Wiranata',
-                'peminjam_id' => 1,
-                'peminjam_nama' => 'Aldo Wiranata',
-                'kelas' => 'X PPLG 1',
-                'jumlah' => 2,
-                'kondisi_barang' => 'baik',
-                'kondisi_pinjam' => 'baik',
-                'keterangan_pinjam' => 'Peminjaman untuk praktik modul otomatisasi.',
-                'tanggal_pinjam' => Carbon::today()->subDays(3)->toDateString(),
-                'tanggal_pengembalian' => Carbon::today()->addDays(4)->toDateString(),
+                'id' => 101,
+                'nama' => 'Bor Listrik',
+                'kategori_id' => 11,
+                'kategori_nama' => 'Peralatan Bengkel',
+                'kode' => 'ALT-PPLG-0001',
+                'ruangan' => 'Gudang Utama',
+                'stok' => 6,
             ],
             [
-                'id' => 2,
-                'nama_barang' => 'Mesin Las',
-                'peminjam' => 'Naila Ramadhani',
-                'peminjam_id' => 2,
-                'peminjam_nama' => 'Naila Ramadhani',
-                'kelas' => 'XI ANM 2',
-                'jumlah' => 1,
-                'kondisi_barang' => 'rusak',
-                'kondisi_pinjam' => 'rusak',
-                'keterangan_pinjam' => 'Untuk tugas akhir kecakapan las.',
-                'tanggal_pinjam' => Carbon::today()->subDays(5)->toDateString(),
-                'tanggal_pengembalian' => Carbon::today()->addDays(2)->toDateString(),
+                'id' => 102,
+                'nama' => 'Mesin Las',
+                'kategori_id' => 12,
+                'kategori_nama' => 'Peralatan Fabrikasi',
+                'kode' => 'ALT-ANM-0102',
+                'ruangan' => 'Workshop Las',
+                'stok' => 3,
             ],
             [
-                'id' => 3,
-                'nama_barang' => 'Senter Industri',
-                'peminjam' => 'Rafi Pratama',
-                'peminjam_id' => 3,
-                'peminjam_nama' => 'Rafi Pratama',
-                'kelas' => 'XII BCF 1',
-                'jumlah' => 3,
-                'kondisi_barang' => 'hilang',
-                'kondisi_pinjam' => 'hilang',
-                'keterangan_pinjam' => 'Pengembalian terlambat dan belum ditemukan.',
-                'tanggal_pinjam' => Carbon::today()->subDays(1)->toDateString(),
-                'tanggal_pengembalian' => Carbon::today()->addDays(1)->toDateString(),
+                'id' => 103,
+                'nama' => 'Senter Industri',
+                'kategori_id' => 13,
+                'kategori_nama' => 'Peralatan Inspeksi',
+                'kode' => 'ALT-BCF-0320',
+                'ruangan' => 'Lab Inspeksi',
+                'stok' => 8,
             ],
         ];
     }
 
-    private function sampleLoanById(int $loanId): array
+    private function toolCategories(?array $tools = null): array
     {
-        $loan = collect($this->sampleLoans())->firstWhere('id', $loanId);
+        $tools = $tools ?? $this->tools();
 
-        if (! $loan) {
-            abort(404);
-        }
-
-        return $loan;
+        return collect($tools)
+            ->map(fn($tool) => [
+                'id' => $tool['kategori_id'],
+                'nama' => $tool['kategori_nama'],
+            ])
+            ->unique('id')
+            ->values()
+            ->all();
     }
 
-    private function sampleLoanDetail(int $loanId): array
+    private function formatLoanForForm(Peminjaman $loan): array
     {
-        return $this->sampleLoanById($loanId);
+        $tool = $loan->alat;
+        $category = $tool?->kategoriAlat;
+
+        return [
+            'id' => $loan->id,
+            'peminjam_id' => $loan->user_id ?? $loan->user?->id ?? 0,
+            'peminjam_nama' => $loan->nama_peminjam,
+            'kelas' => $loan->kelas ?? '',
+            'alat_id' => $tool?->id ?? $loan->daftarbarang_id,
+            'alat_nama' => $tool?->nama_alat ?? 'Peralatan',
+            'kategori_alat_id' => $tool?->kategori_alat_id,
+            'kategori_alat_nama' => $category?->nama ?? 'Tanpa Kategori',
+            'kode_alat' => $tool?->kode_alat ?? sprintf('ALT-%04d', (int) ($loan->daftarbarang_id ?? 0)),
+            'lokasi_stok' => $tool?->ruangan ?? '-',
+            'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString() ?? Carbon::today()->toDateString(),
+            'tanggal_pengembalian' => $loan->tanggal_kembali?->toDateString() ?? Carbon::today()->toDateString(),
+            'jumlah' => $loan->jumlah_pinjam,
+            'kondisi_pinjam' => $this->normalizeCondition($tool?->kondisi_alat),
+            'keterangan_pinjam' => $loan->keperluan ?? '',
+        ];
+    }
+
+    private function formatLoanForDetail(Peminjaman $loan): array
+    {
+        $tool = $loan->alat;
+
+        return [
+            'id' => $loan->id,
+            'kode_transaksi' => sprintf('PM-%04d', $loan->id),
+            'nama_barang' => $tool?->nama_alat ?? 'Peralatan',
+            'peminjam' => $loan->nama_peminjam,
+            'kelas' => $loan->kelas ?? '-',
+            'jumlah' => $loan->jumlah_pinjam,
+            'kondisi_pinjam' => $this->normalizeCondition($tool?->kondisi_alat),
+            'kondisi_pengembalian' => null,
+            'tanggal_pinjam' => $this->formatDateTimeString($loan->tanggal_pinjam),
+            'tanggal_pengembalian' => $this->formatDateTimeString($loan->tanggal_kembali),
+            'keterangan_pinjam' => $loan->keperluan ?? '-',
+            'keterangan_pengembalian' => $loan->alasan_penolakan,
+            'lampiran_url' => null,
+            'status' => $this->mapLoanDetailStatus($loan),
+        ];
+    }
+
+    private function normalizeCondition(?string $value): string
+    {
+        $normalized = strtolower(trim($value ?? ''));
+
+        return in_array($normalized, ['baik', 'rusak', 'hilang'], true)
+            ? $normalized
+            : 'baik';
+    }
+
+    private function formatDateTimeString(?Carbon $date): ?string
+    {
+        if (! $date) {
+            return null;
+        }
+
+        return $date->copy()->startOfDay()->toIso8601String();
+    }
+
+    private function mapLoanDetailStatus(Peminjaman $loan): string
+    {
+        if ($loan->status === 'selesai') {
+            return 'selesai';
+        }
+
+        if ($loan->status === 'ditolak') {
+            return 'selesai';
+        }
+
+        if ($loan->tanggal_kembali instanceof Carbon && $loan->tanggal_kembali->isPast()) {
+            return 'telat';
+        }
+
+        return 'berjalan';
     }
 
     private function extensionHistory(): array

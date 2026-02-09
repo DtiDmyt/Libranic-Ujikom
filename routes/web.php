@@ -86,6 +86,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [AdminPeminjamanController::class, 'index'])->name('index');
             Route::get('data', [AdminPeminjamanController::class, 'index'])->name('data.index');
             Route::get('data/tambah', [AdminPeminjamanController::class, 'create'])->name('data.tambah');
+            Route::post('data', [AdminPeminjamanController::class, 'store'])->name('data.store');
+            Route::patch('data/{loan}', [AdminPeminjamanController::class, 'update'])->name('data.update');
             Route::get('data/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('data.edit');
             Route::get('data/{loan}', [AdminPeminjamanController::class, 'show'])->name('data.show');
             Route::patch('data/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('data.status');

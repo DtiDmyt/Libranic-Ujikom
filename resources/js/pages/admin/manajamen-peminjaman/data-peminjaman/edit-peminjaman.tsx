@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
@@ -11,12 +11,25 @@ import {
     closeAlert,
 } from '@/lib/alert';
 
-type LoanCondition = 'baik' | 'rusak' | 'hilang';
-
 type BorrowerOption = {
     id: number;
     nama: string;
     kelas?: string | null;
+};
+
+type ToolCategory = {
+    id: number;
+    nama: string;
+};
+
+type ToolOption = {
+    id: number;
+    nama: string;
+    kategori_id: number | null;
+    kategori_nama: string;
+    kode: string;
+    ruangan: string;
+    stok?: number;
 };
 
 type LoanItem = {
@@ -24,20 +37,28 @@ type LoanItem = {
     peminjam_id: number;
     peminjam_nama: string;
     kelas: string;
+    alat_id: number;
+    alat_nama: string;
+    kategori_alat_id: number;
+    kategori_alat_nama: string;
+    kode_alat: string;
+    lokasi_stok: string;
     tanggal_pinjam: string;
     tanggal_pengembalian: string;
     jumlah: number;
-    kondisi_pinjam: LoanCondition;
+    kondisi_pinjam: string;
     keterangan_pinjam: string;
 };
 
 type FormFields = {
     peminjam_id: string;
     kelas: string;
+    daftarbarang_id: string;
+    kategori_alat_id: string;
     tanggal_pinjam: string;
     tanggal_pengembalian: string;
     jumlah: string;
-    kondisi_pinjam: LoanCondition;
+    kondisi_pinjam: string;
     keterangan_pinjam: string;
 };
 
@@ -45,13 +66,9 @@ type PageProps = SharedData & {
     borrowers: BorrowerOption[];
     kelasOptions: string[];
     loan: LoanItem;
+    tools: ToolOption[];
+    toolCategories: ToolCategory[];
 };
-
-const conditionOptions: { value: LoanCondition; label: string }[] = [
-    { value: 'baik', label: 'Kondisi Baik' },
-    { value: 'rusak', label: 'Kondisi Rusak' },
-    { value: 'hilang', label: 'Kehilangan' },
-];
 
 const breadcrumbs = (id: number): BreadcrumbItem[] => [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
@@ -61,11 +78,14 @@ const breadcrumbs = (id: number): BreadcrumbItem[] => [
 ];
 
 export default function AdminEditPeminjamanPage() {
-    const { borrowers, kelasOptions, loan } = usePage<PageProps>().props;
+    const { borrowers, kelasOptions, loan, tools, toolCategories } =
+        usePage<PageProps>().props;
 
     const form = useForm<FormFields>({
         peminjam_id: loan.peminjam_id.toString(),
         kelas: loan.kelas,
+        daftarbarang_id: loan.alat_id?.toString() ?? '',
+        kategori_alat_id: loan.kategori_alat_id?.toString() ?? '',
         tanggal_pinjam: loan.tanggal_pinjam,
         tanggal_pengembalian: loan.tanggal_pengembalian,
         jumlah: loan.jumlah.toString(),
@@ -74,6 +94,10 @@ export default function AdminEditPeminjamanPage() {
     });
 
     const [borrowerSearch, setBorrowerSearch] = useState('');
+    const [toolSearch, setToolSearch] = useState('');
+
+    const hasTools = tools.length > 0;
+    const hasCategories = toolCategories.length > 0;
 
     const filteredBorrowers = useMemo(() => {
         if (!borrowerSearch) return borrowers;
@@ -82,14 +106,81 @@ export default function AdminEditPeminjamanPage() {
         );
     }, [borrowerSearch, borrowers]);
 
-    useEffect(() => {
-        const selected = borrowers.find(
-            (borrower) => borrower.id.toString() === form.data.peminjam_id,
-        );
-        if (selected?.kelas && form.data.kelas === '') {
-            form.setData('kelas', selected.kelas);
+    const filteredTools = useMemo(() => {
+        if (!hasTools) {
+            return [] as ToolOption[];
         }
-    }, [borrowers, form, form.data.kelas, form.data.peminjam_id]);
+
+        const keyword = toolSearch.toLowerCase();
+
+        return tools.filter((tool) => {
+            const matchesCategory = form.data.kategori_alat_id
+                ? tool.kategori_id?.toString() === form.data.kategori_alat_id
+                : true;
+            const matchesKeyword = keyword
+                ? tool.nama.toLowerCase().includes(keyword)
+                : true;
+
+            return matchesCategory && matchesKeyword;
+        });
+    }, [form.data.kategori_alat_id, hasTools, toolSearch, tools]);
+
+    const selectedTool = useMemo(() => {
+        if (!form.data.daftarbarang_id) {
+            return undefined;
+        }
+
+        return tools.find(
+            (tool) => tool.id.toString() === form.data.daftarbarang_id,
+        );
+    }, [form.data.daftarbarang_id, tools]);
+
+    const kodeAlat = selectedTool?.kode ?? loan.kode_alat ?? '';
+    const lokasiStok = selectedTool?.ruangan ?? loan.lokasi_stok ?? '';
+    const stokTersedia =
+        typeof selectedTool?.stok === 'number' ? selectedTool.stok : null;
+
+    const categoryExists = useMemo(() => {
+        if (!form.data.kategori_alat_id) {
+            return false;
+        }
+
+        return toolCategories.some(
+            (category) => category.id.toString() === form.data.kategori_alat_id,
+        );
+    }, [form.data.kategori_alat_id, toolCategories]);
+
+    const toolOptionMissing = Boolean(
+        form.data.daftarbarang_id && !selectedTool,
+    );
+
+    const handleToolChange = (value: string) => {
+        form.setData('daftarbarang_id', value);
+        const match = tools.find((tool) => tool.id.toString() === value);
+        if (match) {
+            form.setData(
+                'kategori_alat_id',
+                match.kategori_id !== null && match.kategori_id !== undefined
+                    ? match.kategori_id.toString()
+                    : '',
+            );
+        }
+    };
+
+    const handleCategoryChange = (value: string) => {
+        form.setData('kategori_alat_id', value);
+        const currentTool = tools.find(
+            (tool) => tool.id.toString() === form.data.daftarbarang_id,
+        );
+
+        if (!value || !currentTool) {
+            return;
+        }
+
+        if (currentTool.kategori_id?.toString() !== value) {
+            form.setData('daftarbarang_id', '');
+        }
+    };
 
     const handleSubmit = () => {
         alertLoading('Sedang memperbarui data peminjaman...');
@@ -144,6 +235,16 @@ export default function AdminEditPeminjamanPage() {
 
                 <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_0.8fr]">
                     <div className="space-y-6 rounded-3xl border border-[#E8E2DB] bg-white p-6 shadow-sm">
+                        <div>
+                            <p className="text-base font-semibold text-[#1A3263]">
+                                Informasi Peminjam
+                            </p>
+                            <p className="text-xs text-[#547792]">
+                                Cari nama peminjam, kelas akan mengikuti data
+                                master.
+                            </p>
+                        </div>
+
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-[#1A3263]">
                                 Nama Peminjam *
@@ -171,6 +272,8 @@ export default function AdminEditPeminjamanPage() {
                                     );
                                     if (match?.kelas) {
                                         form.setData('kelas', match.kelas);
+                                    } else {
+                                        form.setData('kelas', '');
                                     }
                                 }}
                                 className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-white px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
@@ -199,27 +302,15 @@ export default function AdminEditPeminjamanPage() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label className="text-sm font-semibold text-[#1A3263]">
-                                    Kelas *
+                                    Kelas
                                 </label>
-                                <select
+                                <input
+                                    type="text"
                                     value={form.data.kelas}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'kelas',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                >
-                                    <option value="" disabled>
-                                        Pilih kelas
-                                    </option>
-                                    {kelasOptions.map((kelas) => (
-                                        <option key={kelas} value={kelas}>
-                                            {kelas}
-                                        </option>
-                                    ))}
-                                </select>
+                                    readOnly
+                                    placeholder="Pilih nama peminjam terlebih dahulu"
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
+                                />
                                 {form.errors.kelas ? (
                                     <p className="mt-1 text-xs text-red-600">
                                         {form.errors.kelas}
@@ -248,6 +339,16 @@ export default function AdminEditPeminjamanPage() {
                                     </p>
                                 ) : null}
                             </div>
+                        </div>
+
+                        <div>
+                            <p className="text-base font-semibold text-[#1A3263]">
+                                Jadwal & Keperluan
+                            </p>
+                            <p className="text-xs text-[#547792]">
+                                Pastikan tanggal sesuai kesepakatan dengan
+                                peminjam.
+                            </p>
                         </div>
 
                         <div className="grid gap-4 md:grid-cols-2">
@@ -297,7 +398,7 @@ export default function AdminEditPeminjamanPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-[#1A3263]">
-                                Keterangan Peminjaman *
+                                Deskripsi Keperluan Peminjaman *
                             </label>
                             <textarea
                                 rows={5}
@@ -309,7 +410,7 @@ export default function AdminEditPeminjamanPage() {
                                     )
                                 }
                                 className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                placeholder="Catat informasi penting terkait penggunaan barang"
+                                placeholder="Perbarui tujuan penggunaan atau catatan tambahan"
                             />
                             {form.errors.keterangan_pinjam ? (
                                 <p className="text-xs text-red-600">
@@ -319,75 +420,184 @@ export default function AdminEditPeminjamanPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-6 rounded-3xl border border-[#E8E2DB] bg-white p-6 shadow-sm">
-                        <div>
-                            <p className="text-base font-semibold text-[#1A3263]">
-                                Kondisi Peminjaman
-                            </p>
-                            <p className="text-xs text-[#547792]">
-                                Pastikan kondisi barang tercatat sebelum keluar
-                                dari gudang.
-                            </p>
-                        </div>
-
-                        <div className="space-y-2">
-                            <p className="text-sm font-semibold text-[#1A3263]">
-                                Kondisi Barang *
-                            </p>
-                            <div className="grid gap-3">
-                                {conditionOptions.map((option) => (
-                                    <label
-                                        key={option.value}
-                                        className={`flex cursor-pointer items-center justify-between rounded-2xl border px-4 py-3 ${
-                                            form.data.kondisi_pinjam ===
-                                            option.value
-                                                ? 'border-[#1A3263] bg-[#EEF2FF]'
-                                                : 'border-[#E8E2DB] bg-[#FDFBF7]'
-                                        }`}
-                                    >
-                                        <span className="text-sm font-semibold text-[#1A3263]">
-                                            {option.label}
-                                        </span>
-                                        <input
-                                            type="radio"
-                                            name="kondisi_pinjam"
-                                            value={option.value}
-                                            checked={
-                                                form.data.kondisi_pinjam ===
-                                                option.value
-                                            }
-                                            onChange={(event) =>
-                                                form.setData(
-                                                    'kondisi_pinjam',
-                                                    event.target
-                                                        .value as LoanCondition,
-                                                )
-                                            }
-                                            className="sr-only"
-                                        />
-                                    </label>
-                                ))}
-                            </div>
-                            {form.errors.kondisi_pinjam ? (
-                                <p className="text-xs text-red-600">
-                                    {form.errors.kondisi_pinjam}
+                    <div className="space-y-6">
+                        <div className="space-y-4 rounded-3xl border border-[#E8E2DB] bg-white p-6 shadow-sm">
+                            <div>
+                                <p className="text-base font-semibold text-[#1A3263]">
+                                    Detail Alat
                                 </p>
-                            ) : null}
-                        </div>
+                                <p className="text-xs text-[#547792]">
+                                    Periksa kembali alat yang dipinjam agar kode
+                                    dan lokasi selalu sesuai.
+                                </p>
+                            </div>
 
-                        <div className="flex flex-wrap gap-3">
-                            <button
-                                type="submit"
-                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-transparent bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#152750]"
-                            >
-                                Simpan Perubahan
-                            </button>
-                            <Link
-                                href={`/admin/peminjaman/data/${loan.id}`}
-                                className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
-                            >
-                                Batal
-                            </Link>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Kategori Alat
+                                </label>
+                                <select
+                                    value={form.data.kategori_alat_id}
+                                    onChange={(event) =>
+                                        handleCategoryChange(event.target.value)
+                                    }
+                                    disabled={!hasCategories || !hasTools}
+                                    className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                                >
+                                    {!hasCategories ? (
+                                        <option value="">
+                                            Belum ada kategori alat
+                                        </option>
+                                    ) : (
+                                        <>
+                                            <option value="">
+                                                Semua kategori
+                                            </option>
+                                            {toolCategories.map((category) => (
+                                                <option
+                                                    key={category.id}
+                                                    value={category.id.toString()}
+                                                >
+                                                    {category.nama}
+                                                </option>
+                                            ))}
+                                            {!categoryExists &&
+                                            form.data.kategori_alat_id ? (
+                                                <option
+                                                    value={
+                                                        form.data
+                                                            .kategori_alat_id
+                                                    }
+                                                >
+                                                    {loan.kategori_alat_nama}{' '}
+                                                    (tidak tersedia)
+                                                </option>
+                                            ) : null}
+                                        </>
+                                    )}
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Nama Alat *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={toolSearch}
+                                    onChange={(event) =>
+                                        setToolSearch(event.target.value)
+                                    }
+                                    disabled={!hasTools}
+                                    placeholder="Cari berdasarkan nama alat"
+                                    className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none disabled:cursor-not-allowed"
+                                />
+                                <select
+                                    value={form.data.daftarbarang_id}
+                                    onChange={(event) =>
+                                        handleToolChange(event.target.value)
+                                    }
+                                    disabled={!hasTools}
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-white px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100"
+                                >
+                                    {!hasTools ? (
+                                        <option value="">
+                                            Belum ada data alat
+                                        </option>
+                                    ) : filteredTools.length === 0 ? (
+                                        <option value="">
+                                            Tidak ada alat yang cocok
+                                        </option>
+                                    ) : (
+                                        <>
+                                            <option value="" disabled>
+                                                Pilih alat yang dipinjam
+                                            </option>
+                                            {filteredTools.map((tool) => (
+                                                <option
+                                                    key={tool.id}
+                                                    value={tool.id.toString()}
+                                                >
+                                                    {tool.nama}
+                                                </option>
+                                            ))}
+                                        </>
+                                    )}
+                                    {toolOptionMissing ? (
+                                        <option
+                                            value={form.data.daftarbarang_id}
+                                        >
+                                            {loan.alat_nama} (tidak tersedia)
+                                        </option>
+                                    ) : null}
+                                </select>
+                                {form.errors.daftarbarang_id ? (
+                                    <p className="text-xs text-red-600">
+                                        {form.errors.daftarbarang_id}
+                                    </p>
+                                ) : null}
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <label className="text-sm font-semibold text-[#1A3263]">
+                                        Kode Alat
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={kodeAlat}
+                                        readOnly
+                                        placeholder="Pilih alat terlebih dahulu"
+                                        className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-semibold text-[#1A3263]">
+                                        Lokasi Stok
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={lokasiStok}
+                                        readOnly
+                                        placeholder="Pilih alat terlebih dahulu"
+                                        className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-[#F8FAFC] p-4 text-xs text-[#547792]">
+                                {selectedTool ? (
+                                    <>
+                                        <p className="text-sm font-semibold text-[#1A3263]">
+                                            Stok tersedia: {stokTersedia ?? '–'}{' '}
+                                            unit
+                                        </p>
+                                        <p className="mt-1">
+                                            Catat perubahan stok setelah
+                                            peminjaman diperbarui.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm font-semibold text-[#1A3263]">
+                                        Alat lama masih tercatat, pilih opsi
+                                        baru bila perlu.
+                                    </p>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-3 pt-2">
+                                <button
+                                    type="submit"
+                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-transparent bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#152750]"
+                                >
+                                    Simpan Perubahan
+                                </button>
+                                <Link
+                                    href={`/admin/peminjaman/data/${loan.id}`}
+                                    className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
+                                >
+                                    Batal
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
