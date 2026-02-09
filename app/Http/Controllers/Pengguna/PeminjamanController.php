@@ -126,4 +126,34 @@ class PeminjamanController extends Controller
         return Redirect::route('daftar-alat.index')
             ->with('success', 'Permohonan peminjaman berhasil dikirim.');
     }
+
+    public function returnForm(Request $request, Peminjaman $loan): Response
+    {
+        $user = $request->user();
+        abort_unless($loan->user_id === $user->id, 403);
+
+        $loan->loadMissing('alat');
+
+        return Inertia::render('pengguna/pengembalian/form-pengembalian', [
+            'borrower' => [
+                'nama' => $user->name,
+                'nis_nip' => $user->identitas ?? $user->email ?? '-',
+                'kelas' => $user->kelas ?? '-',
+            ],
+            'alat' => [
+                'id' => $loan->alat?->id,
+                'nama_alat' => $loan->alat?->nama_alat ?? '-',
+                'kode_alat' => $loan->alat?->kode_alat ?? '-',
+                'lokasi' => $loan->alat?->ruangan ?? '-',
+            ],
+            'loan' => [
+                'id' => $loan->id,
+                'jumlah_pinjam' => $loan->jumlah_pinjam,
+                'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
+                'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
+                'keperluan' => $loan->keperluan,
+                'denda_per_hari' => $loan->denda_per_hari ?? 0,
+            ],
+        ]);
+    }
 }

@@ -126,7 +126,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                             },
                             {
                                 title: 'Data Pengembalian',
-                                href: '/admin/pengembalian',
+                                href: '/admin/peminjaman/pengembalian',
                                 icon: RotateCcw,
                             },
                             {

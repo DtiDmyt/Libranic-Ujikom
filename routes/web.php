@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\KategoriAlatController;
 use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\Pengguna\DaftarAlatController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
+use App\Http\Controllers\Pengguna\PengembalianController;
 use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
 
 Route::get('/', function () {
@@ -45,6 +46,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('form');
             Route::post('form', [PenggunaPeminjamanController::class, 'store'])
                 ->name('form.store');
+            Route::get('{loan}/pengembalian', [PengembalianController::class, 'create'])
+                ->name('pengembalian.create');
+            Route::post('{loan}/pengembalian', [PengembalianController::class, 'store'])
+                ->name('pengembalian.store');
         });
     });
 
@@ -90,6 +95,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('data/{loan}', [AdminPeminjamanController::class, 'update'])->name('data.update');
             Route::get('data/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('data.edit');
             Route::get('data/{loan}', [AdminPeminjamanController::class, 'show'])->name('data.show');
+            Route::get('pengembalian', function () {
+                return Inertia::render('admin/manajamen-peminjaman/data-pengembalian/daftar-pengembalian');
+            })->name('pengembalian.index');
             Route::patch('data/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('data.status');
         });
     });
