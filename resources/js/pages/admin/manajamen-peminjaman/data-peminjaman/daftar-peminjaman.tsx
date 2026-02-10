@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
@@ -211,7 +211,7 @@ export default function AdminDataPeminjamanPage() {
     );
     const [detailLoan, setDetailLoan] = useState<LoanRow | null>(null);
     const [statusFilter, setStatusFilter] = useState<'semua' | LoanStatus>(
-        'semua',
+        filters.status ?? 'semua',
     );
 
     useEffect(() => {
@@ -222,8 +222,8 @@ export default function AdminDataPeminjamanPage() {
         setLocalItems(items);
         setEditingStatusId(null);
         setStatusLoadingId(null);
-        setStatusFilter('semua');
-    }, [items, filters.search]);
+        setStatusFilter(filters.status ?? 'semua');
+    }, [items, filters.search, filters.status]);
 
     useEffect(() => {
         if (flash?.success) {
@@ -258,9 +258,13 @@ export default function AdminDataPeminjamanPage() {
         hideRejectModal();
     };
 
-    const visitWithFilters = (overrides?: { search?: string }) => {
+    const visitWithFilters = (overrides?: {
+        search?: string;
+        status?: 'semua' | LoanStatus;
+    }) => {
         const query: Record<string, unknown> = {
             search: overrides?.search ?? searchTerm,
+            status: overrides?.status ?? statusFilter,
         };
 
         router.get('/admin/data-peminjaman/peminjaman', query, {
@@ -268,6 +272,12 @@ export default function AdminDataPeminjamanPage() {
             preserveScroll: true,
             replace: true,
         });
+    };
+
+    const handleStatusChange = (event: ChangeEvent<HTMLSelectElement>) => {
+        const nextStatus = event.target.value as 'semua' | LoanStatus;
+        setStatusFilter(nextStatus);
+        visitWithFilters({ status: nextStatus });
     };
 
     const toggleSelect = (id: number) => {
@@ -606,13 +616,7 @@ export default function AdminDataPeminjamanPage() {
                                     <th className="px-4 py-3">
                                         <select
                                             value={statusFilter}
-                                            onChange={(event) =>
-                                                setStatusFilter(
-                                                    event.target.value as
-                                                        | 'semua'
-                                                        | LoanStatus,
-                                                )
-                                            }
+                                            onChange={handleStatusChange}
                                             className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
                                         >
                                             {statusFilterOptions.map(

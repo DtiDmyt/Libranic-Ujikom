@@ -67,7 +67,7 @@ export default function AdminTambahAdministratorPage() {
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
                             Buat akun baru untuk administrator atau petugas
-                            Simanic.
+                            Prestito.
                         </p>
                     </div>
                     <Link

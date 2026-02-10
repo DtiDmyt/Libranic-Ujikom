@@ -26,7 +26,7 @@ export default function Register() {
     return (
         <AuthLayout
             title="Buat Akun Baru"
-            description="Masukkan data diri Anda untuk membuat akun Simanic."
+            description="Masukkan data diri Anda untuk membuat akun Prestito."
         >
             <Head title="Daftar" />
             <Form

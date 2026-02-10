@@ -331,7 +331,7 @@ function BrandBlock({ href }: { href: string }) {
                     {!isCollapsed && (
                         <div className="min-w-0 text-left">
                             <p className="text-sm leading-snug font-semibold">
-                                Simanic
+                                Prestito
                             </p>
                         </div>
                     )}

@@ -23,11 +23,17 @@ class PeminjamanController extends Controller
     {
         $search = $request->string('search')->toString();
         $statusFilter = $request->string('status')->toString() ?: 'semua';
-
         $query = Peminjaman::with(['alat', 'user', 'pengembalian']);
 
         if ($statusFilter !== 'semua') {
-            $query->where('status', $statusFilter);
+            if ($statusFilter === 'menunggu') {
+                $query->where(function ($builder) {
+                    $builder->where('status', 'menunggu')
+                        ->orWhereNull('status');
+                });
+            } else {
+                $query->where('status', $statusFilter);
+            }
         }
 
         if ($search !== '') {

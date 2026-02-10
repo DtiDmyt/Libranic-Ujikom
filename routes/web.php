@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use App\Http\Controllers\Admin\AdministratorController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
 use App\Http\Controllers\Admin\LogAktivitasController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController
 use App\Http\Controllers\Pengguna\DaftarAlatController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
 use App\Http\Controllers\Pengguna\PengembalianController;
+use App\Http\Controllers\Petugas\LaporanController;
 use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
 use App\Http\Controllers\Petugas\PengembalianController as PetugasPengembalianController;
 
@@ -61,9 +63,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('dashboard', function () {
-            return Inertia::render('admin/dashboard/dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::get('log-aktivitas', [LogAktivitasController::class, 'index'])
             ->name('log-aktivitas.index');
@@ -153,6 +153,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('{pengembalian}', [PetugasPengembalianController::class, 'show'])->name('show');
             Route::patch('{pengembalian}/status', [PetugasPengembalianController::class, 'updateStatus'])->name('status');
         });
+
+        Route::get('laporan', [LaporanController::class, 'index'])->name('laporan');
     });
 });
 

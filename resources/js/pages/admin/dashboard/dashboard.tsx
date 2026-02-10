@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
     ClipboardList,
     Coins,
@@ -18,7 +18,7 @@ import { Line, LineChart } from 'recharts';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -27,73 +27,35 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-type QuickStat = {
-    label: string;
-    value: string;
-    unit?: string;
-    description: string;
-    icon: LucideIcon;
-    accent: string;
-};
-
 type JurusanStat = {
     name: string;
     peminjaman: number;
     terlambat: number;
 };
 
-const quickStats: QuickStat[] = [
-    {
-        label: 'Total Alat',
-        value: '540',
-        unit: 'unit',
-        description: '+12 alat baru bulan ini',
-        icon: Layers3,
-        accent: 'from-[#1A3263] to-[#233D7A]',
-    },
-    {
-        label: 'Peminjaman Aktif',
-        value: '318',
-        unit: 'transaksi',
-        description: 'Terakhir diperbarui 5 menit lalu',
-        icon: ClipboardList,
-        accent: 'from-[#496987] to-[#547792]',
-    },
-    {
-        label: 'Alat Rusak / Habis',
-        value: '11',
-        unit: 'unit',
-        description: 'Perlu pengecekan ulang stok',
-        icon: TriangleAlert,
-        accent: 'from-[#F7B74F] to-[#FAB95B]',
-    },
-    {
-        label: 'Total Denda Bulan Ini',
-        value: 'Rp 1.250.000',
-        unit: '',
-        description: 'Naik 6% dibanding bulan lalu',
-        icon: Coins,
-        accent: 'from-[#E8E2DB] to-[#F7F0E7] text-[#1A3263]',
-    },
-];
+type QuickStatsPayload = {
+    totalAlat: number;
+    peminjamanAktif: number;
+    problematicItems: number;
+    totalDenda: number;
+};
 
-const jurusanStats: JurusanStat[] = [
-    { name: 'PPLG', peminjaman: 142, terlambat: 5 },
-    { name: 'ANIM', peminjaman: 118, terlambat: 3 },
-    { name: 'BCF', peminjaman: 103, terlambat: 4 },
-    { name: 'TO', peminjaman: 95, terlambat: 2 },
-    { name: 'TPFL', peminjaman: 82, terlambat: 1 },
-    { name: 'UMUM', peminjaman: 76, terlambat: 2 },
-];
+type DashboardPageProps = {
+    quickStats: QuickStatsPayload;
+    jurusanStats: JurusanStat[];
+    peakJurusan: JurusanStat;
+    highestLate: JurusanStat;
+};
 
-const peakJurusan = jurusanStats.reduce(
-    (prev, curr) => (curr.peminjaman > prev.peminjaman ? curr : prev),
-    jurusanStats[0],
-);
-const highestLate = jurusanStats.reduce(
-    (prev, curr) => (curr.terlambat > prev.terlambat ? curr : prev),
-    jurusanStats[0],
-);
+type QuickStatConfig = {
+    key: keyof QuickStatsPayload;
+    label: string;
+    unit?: string;
+    description: string;
+    icon: LucideIcon;
+    accent: string;
+    format: (value: number) => string;
+};
 
 const JurusanTooltip = ({
     active,
@@ -119,6 +81,63 @@ const JurusanTooltip = ({
 };
 
 export default function AdminDashboard() {
+    const {
+        quickStats: quickStatsPayload,
+        jurusanStats,
+        peakJurusan,
+        highestLate,
+    } = usePage<SharedData & DashboardPageProps>().props;
+
+    const numberFormatter = new Intl.NumberFormat('id-ID');
+    const currencyFormatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+    });
+
+    const quickStatConfig: QuickStatConfig[] = [
+        {
+            key: 'totalAlat',
+            label: 'Total Alat',
+            unit: 'unit',
+            description: '+12 alat baru bulan ini',
+            icon: Layers3,
+            accent: 'from-[#1A3263] to-[#233D7A]',
+            format: (value) => numberFormatter.format(value),
+        },
+        {
+            key: 'peminjamanAktif',
+            label: 'Peminjaman Aktif',
+            unit: 'transaksi',
+            description: 'Terakhir diperbarui 5 menit lalu',
+            icon: ClipboardList,
+            accent: 'from-[#496987] to-[#547792]',
+            format: (value) => numberFormatter.format(value),
+        },
+        {
+            key: 'problematicItems',
+            label: 'Alat Rusak / Habis',
+            unit: 'unit',
+            description: 'Perlu pengecekan ulang stok',
+            icon: TriangleAlert,
+            accent: 'from-[#F7B74F] to-[#FAB95B]',
+            format: (value) => numberFormatter.format(value),
+        },
+        {
+            key: 'totalDenda',
+            label: 'Total Denda Bulan Ini',
+            description: 'Naik 6% dibanding bulan lalu',
+            icon: Coins,
+            accent: 'from-[#E8E2DB] to-[#F7F0E7] text-[#1A3263]',
+            format: (value) => currencyFormatter.format(value),
+        },
+    ];
+
+    const quickStats = quickStatConfig.map((config) => ({
+        ...config,
+        displayValue: config.format(quickStatsPayload[config.key]),
+    }));
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Admin Dashboard" />
@@ -149,7 +168,7 @@ export default function AdminDashboard() {
                                     </p>
                                     <div className="mt-3 flex items-baseline gap-2">
                                         <p className="text-3xl font-semibold text-[#1A3263]">
-                                            {stat.value}
+                                            {stat.displayValue}
                                         </p>
                                         {stat.unit ? (
                                             <span className="text-sm font-medium text-[#547792]">
@@ -224,40 +243,6 @@ export default function AdminDashboard() {
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
-                    </div>
-                    <div className="rounded-3xl border border-[#1A3263]/10 bg-white p-6 shadow-sm">
-                        <p className="text-xs font-semibold tracking-[0.4em] text-[#547792] uppercase">
-                            Catatan Singkat
-                        </p>
-                        <div className="mt-4 grid gap-4 text-sm text-slate-600 md:grid-cols-2">
-                            <div className="rounded-2xl bg-[#F9F5EE]/80 p-4">
-                                <p className="text-xs font-semibold text-[#1A3263]">
-                                    Jurusan paling aktif
-                                </p>
-                                <p className="text-base font-semibold text-[#1A3263]">
-                                    {peakJurusan.name}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    {peakJurusan.peminjaman} peminjaman aktif
-                                </p>
-                            </div>
-                            <div className="rounded-2xl border border-[#FAB95B]/40 p-4">
-                                <p className="text-xs font-semibold text-[#B45309]">
-                                    Perlu perhatian
-                                </p>
-                                <p className="text-base font-semibold text-[#1A3263]">
-                                    {highestLate.name}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    {highestLate.terlambat} keterlambatan
-                                    tercatat
-                                </p>
-                            </div>
-                        </div>
-                        <p className="mt-4 text-xs text-slate-500">
-                            Rekomendasi: jadwalkan inspeksi alat rusak dan
-                            ingatkan jurusan dengan keterlambatan tinggi.
-                        </p>
                     </div>
                 </div>
             </div>

@@ -2,7 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import AlertPernyataan from '@/pages/pengguna/peminjaman/alert-pernyataan';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import type { FormEvent } from 'react';
+import type { FocusEvent, FormEvent, MouseEvent } from 'react';
 import { useMemo, useState } from 'react';
 import { ArrowLeft, CalendarDays, ClipboardList } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -79,20 +79,12 @@ const normalizeStartDate = (value: string, minValue: string): string => {
     return formatDateValue(date);
 };
 
-const addBusinessDays = (start: string, daysToAdd: number): string => {
-    const date = parseDateValue(start)!;
-    let added = 0;
-    while (added < daysToAdd) {
-        date.setDate(date.getDate() + 1);
-        if (!isWeekend(date)) {
-            added += 1;
-        }
-    }
+const maxReturnDateFrom = (start: string): string => {
+    const baseDate = parseDateValue(start) ?? new Date();
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + Math.max(0, MAX_LOAN_DAYS));
     return formatDateValue(date);
 };
-
-const maxReturnDateFrom = (start: string): string =>
-    addBusinessDays(start, Math.max(0, MAX_LOAN_DAYS - 1));
 
 const normalizeEndDate = (start: string, desired: string): string => {
     const minDate = parseDateValue(start)!;
@@ -168,10 +160,12 @@ export default function PenggunaFormPeminjamanPage() {
         keperluan: '',
     });
 
-    const maxReturnDate = useMemo(
-        () => maxReturnDateFrom(form.data.tanggal_pinjam),
-        [form.data.tanggal_pinjam],
-    );
+    const maxReturnDate = useMemo(() => {
+        if (!form.data.tanggal_pinjam) {
+            return today;
+        }
+        return maxReturnDateFrom(form.data.tanggal_pinjam);
+    }, [form.data.tanggal_pinjam, today]);
 
     const dendaPerHariLabel = currencyFormatter.format(
         alat.denda_keterlambatan ?? 0,
@@ -250,6 +244,20 @@ export default function PenggunaFormPeminjamanPage() {
         }
         setDateError(null);
         form.setData('tanggal_kembali', formatDateValue(parsed));
+    };
+
+    const requestShowPicker = (target: HTMLInputElement) => {
+        (
+            target as HTMLInputElement & { showPicker?: () => void }
+        ).showPicker?.();
+    };
+
+    const handleDateInputFocus = (event: FocusEvent<HTMLInputElement>) => {
+        requestShowPicker(event.currentTarget);
+    };
+
+    const handleDateInputClick = (event: MouseEvent<HTMLInputElement>) => {
+        requestShowPicker(event.currentTarget);
     };
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -371,6 +379,8 @@ export default function PenggunaFormPeminjamanPage() {
                                                 event.target.value,
                                             )
                                         }
+                                        onFocus={handleDateInputFocus}
+                                        onClick={handleDateInputClick}
                                         className="mt-2 w-full bg-transparent text-base font-semibold text-[#1A3263] outline-none"
                                     />
                                 </div>
@@ -389,6 +399,8 @@ export default function PenggunaFormPeminjamanPage() {
                                                 event.target.value,
                                             )
                                         }
+                                        onFocus={handleDateInputFocus}
+                                        onClick={handleDateInputClick}
                                         className="mt-2 w-full bg-transparent text-base font-semibold text-[#1A3263] outline-none"
                                     />
                                 </div>
@@ -438,7 +450,7 @@ export default function PenggunaFormPeminjamanPage() {
                                 Identitas Peminjam
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Data otomatis dari akun Simanic.
+                                Data otomatis dari akun Prestito.
                             </p>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">

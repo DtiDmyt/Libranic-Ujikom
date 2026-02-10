@@ -101,7 +101,7 @@ class PeminjamanController extends Controller
                 'tanggal_pinjam' => Carbon::today()->toDateString(),
                 'tanggal_kembali' => Carbon::today()->addDays(6)->toDateString(),
             ],
-            'maxBorrowPerUser' => Config::get('simanic.max_borrow_per_user', 2),
+            'maxBorrowPerUser' => Config::get('prestito.max_borrow_per_user', 2),
         ]);
     }
 

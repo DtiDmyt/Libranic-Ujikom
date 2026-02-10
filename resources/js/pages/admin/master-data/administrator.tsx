@@ -342,7 +342,7 @@ export default function AdminAdministratorPage() {
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
                             Kelola akun administrator dan petugas untuk akses
-                            sistem Simanic.
+                            sistem Prestito.
                         </p>
                     </div>
                 </div>
