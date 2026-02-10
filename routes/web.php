@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
+use App\Http\Controllers\Admin\LogAktivitasController;
 use App\Http\Controllers\Admin\PengembalianController as AdminPengembalianController;
 use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\Pengguna\DaftarAlatController;
@@ -63,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('dashboard', function () {
             return Inertia::render('admin/dashboard/dashboard');
         })->name('dashboard');
+
+        Route::get('log-aktivitas', [LogAktivitasController::class, 'index'])
+            ->name('log-aktivitas.index');
 
         Route::get('alat/kategori', [KategoriAlatController::class, 'index'])->name('kategori.index');
         Route::post('alat/kategori', [KategoriAlatController::class, 'store'])->name('kategori.store');

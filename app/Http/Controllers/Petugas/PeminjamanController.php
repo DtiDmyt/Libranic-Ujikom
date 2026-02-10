@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Peminjaman;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -86,6 +87,33 @@ class PeminjamanController extends Controller
             ? $data['reason']
             : null;
         $loan->save();
+
+        $loan->loadMissing(['alat', 'user']);
+        $actor = $request->user();
+        $actorName = $actor?->name ?? 'Petugas';
+        $borrowerName = $loan->nama_peminjam ?? $loan->user?->name ?? 'peminjam';
+        $toolName = $loan->alat?->nama_alat ?? 'alat';
+
+        $description = match ($data['status']) {
+            'disetujui' => sprintf('menyetujui peminjaman %s untuk %s.', $toolName, $borrowerName),
+            'ditolak' => sprintf('menolak peminjaman %s milik %s.', $toolName, $borrowerName),
+            default => sprintf('memperbarui status peminjaman %s milik %s.', $toolName, $borrowerName),
+        };
+
+        ActivityLog::record(
+            $actor?->id,
+            $description,
+            [
+                'context' => 'persetujuan_petugas',
+                'loan_id' => $loan->id,
+                'alat_id' => $loan->alat?->id,
+                'alat_nama' => $toolName,
+                'target_user_id' => $loan->user_id,
+                'target_user_name' => $borrowerName,
+                'status' => $data['status'],
+                'reason' => $loan->alasan_penolakan,
+            ]
+        );
 
         return response()->json(['status' => 'ok']);
     }

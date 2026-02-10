@@ -388,9 +388,6 @@ function HeaderAction({
                 <action.icon className="h-4 w-4 text-[#FAB95B]" />
                 <span className="truncate">{action.title}</span>
             </span>
-            <span className="text-[10px] tracking-[0.35em] text-white/60 uppercase">
-                Live
-            </span>
         </Link>
     );
 }

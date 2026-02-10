@@ -100,15 +100,9 @@ const conditionConfig: Record<
 const statusFilterOptions: { value: ReturnStatus | 'semua'; label: string }[] =
     [
         { value: 'semua', label: 'Semua Status' },
-        ...(
-            [
-                'tepat waktu',
-                'telat',
-                'rusak',
-                'hilang',
-                'menunggu',
-            ] as ReturnStatus[]
-        ).map((value) => ({ value, label: returnStatusConfig[value].label })),
+        ...(['tepat waktu', 'telat', 'rusak', 'hilang'] as ReturnStatus[]).map(
+            (value) => ({ value, label: returnStatusConfig[value].label }),
+        ),
     ];
 
 const renderReturnStatusBadge = (status: ReturnStatus) => {

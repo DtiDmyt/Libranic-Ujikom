@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\DaftarBarang;
 use App\Models\Peminjaman;
 use App\Models\Pengembalian;
@@ -211,6 +212,33 @@ class PeminjamanController extends Controller
         $loan->alasan_penolakan = $data['status'] === 'ditolak' ? $data['reason'] : null;
         $loan->save();
 
+        $loan->loadMissing(['alat', 'user']);
+        $actor = $request->user();
+        $actorName = $actor?->name ?? 'Sistem';
+        $borrowerName = $loan->nama_peminjam ?? $loan->user?->name ?? 'peminjam';
+        $toolName = $loan->alat?->nama_alat ?? 'alat';
+
+        $description = match ($data['status']) {
+            'disetujui' => sprintf('menyetujui peminjaman %s untuk %s.', $toolName, $borrowerName),
+            'ditolak' => sprintf('menolak peminjaman %s milik %s.', $toolName, $borrowerName),
+            default => sprintf('memperbarui status peminjaman %s milik %s.', $toolName, $borrowerName),
+        };
+
+        ActivityLog::record(
+            $actor?->id,
+            $description,
+            [
+                'context' => 'persetujuan_admin',
+                'loan_id' => $loan->id,
+                'alat_id' => $loan->alat?->id,
+                'alat_nama' => $toolName,
+                'target_user_id' => $loan->user_id,
+                'target_user_name' => $borrowerName,
+                'status' => $data['status'],
+                'reason' => $loan->alasan_penolakan,
+            ]
+        );
+
         return response()->json(['status' => 'ok']);
     }
 
@@ -245,7 +273,8 @@ class PeminjamanController extends Controller
         $statusFilter = $request->string('status')->toString() ?: 'semua';
 
         $query = Pengembalian::with(['peminjaman.alat'])
-            ->whereNotNull('tanggal_pengembalian');
+            ->whereNotNull('tanggal_pengembalian')
+            ->whereIn('status', ['tepat waktu', 'telat', 'rusak', 'hilang']);
 
         if ($statusFilter !== 'semua') {
             $query->where('status', $statusFilter);
@@ -501,7 +530,6 @@ class PeminjamanController extends Controller
             'telat' => 'Telat',
             'rusak' => 'Rusak',
             'hilang' => 'Hilang',
-            'menunggu' => 'Proses Pengecekan',
             default => null,
         };
     }

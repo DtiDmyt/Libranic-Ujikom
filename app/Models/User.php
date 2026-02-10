@@ -28,6 +28,8 @@ class User extends Authenticatable
         'phone',
         'identitas',
         'password',
+        'last_activity_at',
+        'is_online',
     ];
 
     /**
@@ -53,6 +55,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'last_activity_at' => 'datetime',
+            'is_online' => 'boolean',
         ];
     }
 }

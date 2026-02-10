@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pengguna;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Pengembalian;
 use App\Models\Peminjaman;
 use Illuminate\Http\RedirectResponse;
@@ -77,6 +78,30 @@ class PengembalianController extends Controller
 
         $loan->status = 'dikembalikan';
         $loan->save();
+
+        $loan->loadMissing('alat');
+        $conditionLabel = match ($data['kondisi']) {
+            'rusak' => 'rusak',
+            'hilang' => 'hilang',
+            default => 'baik',
+        };
+
+        ActivityLog::record(
+            $user->id,
+            sprintf(
+                'mengembalikan %s dalam kondisi %s.',
+                $loan->alat?->nama_alat ?? 'alat',
+                $conditionLabel
+            ),
+            [
+                'context' => 'pengembalian',
+                'loan_id' => $loan->id,
+                'pengembalian_id' => $pengembalian->id,
+                'alat_id' => $loan->alat?->id,
+                'alat_nama' => $loan->alat?->nama_alat,
+                'kondisi' => $data['kondisi'],
+            ]
+        );
 
         return redirect()
             ->route('peminjaman.index')

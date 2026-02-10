@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Pengguna;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\DaftarBarang;
 use App\Models\Pengembalian;
 use App\Models\Peminjaman;
@@ -117,7 +118,7 @@ class PeminjamanController extends Controller
         $item = DaftarBarang::findOrFail($data['alat_id']);
         $user = $request->user();
 
-        Peminjaman::create([
+        $loan = Peminjaman::create([
             'user_id' => $user->id,
             'daftarbarang_id' => $data['alat_id'],
             'nama_peminjam' => $user->name ?? '-',
@@ -130,6 +131,22 @@ class PeminjamanController extends Controller
             'status' => 'menunggu',
             'denda_per_hari' => $item->denda_keterlambatan ?? 0,
         ]);
+
+        ActivityLog::record(
+            $user->id,
+            sprintf(
+                'mengajukan peminjaman %s sebanyak %d unit.',
+                $item->nama_alat ?? 'alat',
+                (int) $data['jumlah_pinjam']
+            ),
+            [
+                'context' => 'pengajuan_peminjaman',
+                'loan_id' => $loan->id,
+                'alat_id' => $item->id,
+                'alat_nama' => $item->nama_alat,
+                'jumlah_pinjam' => (int) $data['jumlah_pinjam'],
+            ]
+        );
 
         return Redirect::route('daftar-alat.index')
             ->with('success', 'Permohonan peminjaman berhasil dikirim.');
