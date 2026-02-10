@@ -45,10 +45,6 @@ type PageProps = SharedData & {
         kondisi: LoanCondition | 'semua';
     };
     borrowers: BorrowerOption[];
-    flash?: {
-        success?: string;
-        error?: string;
-    };
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -197,7 +193,7 @@ const renderReturnStatusBadge = (status: ReturnStatus) => {
 };
 
 export default function AdminDataPeminjamanPage() {
-    const { items, filters, borrowers, flash } = usePage<PageProps>().props;
+    const { items, filters, borrowers } = usePage<PageProps>().props;
 
     const [localItems, setLocalItems] = useState(items);
     const [selected, setSelected] = useState<number[]>([]);
@@ -224,14 +220,6 @@ export default function AdminDataPeminjamanPage() {
         setStatusLoadingId(null);
         setStatusFilter(filters.status ?? 'semua');
     }, [items, filters.search, filters.status]);
-
-    useEffect(() => {
-        if (flash?.success) {
-            alertSuccess(flash.success);
-        } else if (flash?.error) {
-            alertError(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
 
     useEffect(() => {
         if (searchTerm === (filters.search ?? '')) {

@@ -51,10 +51,6 @@ type PageProps = SharedData & {
         jurusan: string | null;
     };
     categories: CategoryOption[];
-    flash?: {
-        success?: string;
-        error?: string;
-    };
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -84,7 +80,7 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 const formatCurrency = (value: number) => rupiahFormatter.format(value);
 
 export default function AdminDataAlatPage() {
-    const { items, filters, categories, flash } = usePage<PageProps>().props;
+    const { items, filters, categories } = usePage<PageProps>().props;
     const {
         status: statusFilter,
         kategori: kategoriFilter,
@@ -101,14 +97,6 @@ export default function AdminDataAlatPage() {
             prev.filter((id) => items.some((item) => item.id === id)),
         );
     }, [filters.search, items]);
-
-    useEffect(() => {
-        if (flash?.success) {
-            alertSuccess(flash.success);
-        } else if (flash?.error) {
-            alertError(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
 
     useEffect(() => {
         if (searchTerm === (filters.search ?? '')) {

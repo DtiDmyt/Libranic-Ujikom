@@ -11,8 +11,10 @@ use App\Http\Controllers\Admin\LogAktivitasController;
 use App\Http\Controllers\Admin\PengembalianController as AdminPengembalianController;
 use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\Pengguna\DaftarAlatController;
+use App\Http\Controllers\Pengguna\DashboardController as PenggunaDashboardController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
 use App\Http\Controllers\Pengguna\PengembalianController;
+use App\Http\Controllers\Petugas\DashboardController as PetugasDashboardController;
 use App\Http\Controllers\Petugas\LaporanController;
 use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
 use App\Http\Controllers\Petugas\PengembalianController as PetugasPengembalianController;
@@ -35,38 +37,26 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:peminjam')->group(function () {
-        Route::get('dashboard', function () {
-            return Inertia::render('dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', [PenggunaDashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('daftar-alat', [DaftarAlatController::class, 'index'])
-            ->name('daftar-alat.index');
+        Route::get('daftar-alat', [DaftarAlatController::class, 'index'])->name('daftar-alat.index');
 
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
-            Route::get('/', [PenggunaPeminjamanController::class, 'index'])
-                ->name('index');
-            Route::get('daftar-peminjaman', [PenggunaPeminjamanController::class, 'index'])
-                ->name('daftar');
-            Route::get('riwayat-peminjaman/{loan}', [PenggunaPeminjamanController::class, 'showRiwayat'])
-                ->name('riwayat.detail');
-            Route::get('riwayat-peminjaman', [PenggunaPeminjamanController::class, 'riwayat'])
-                ->name('riwayat');
-            Route::get('form', [PenggunaPeminjamanController::class, 'create'])
-                ->name('form');
-            Route::post('form', [PenggunaPeminjamanController::class, 'store'])
-                ->name('form.store');
-            Route::get('{loan}/pengembalian', [PengembalianController::class, 'create'])
-                ->name('pengembalian.create');
-            Route::post('{loan}/pengembalian', [PengembalianController::class, 'store'])
-                ->name('pengembalian.store');
+            Route::get('/', [PenggunaPeminjamanController::class, 'index'])->name('index');
+            Route::get('daftar-peminjaman', [PenggunaPeminjamanController::class, 'index'])->name('daftar');
+            Route::get('riwayat-peminjaman/{loan}', [PenggunaPeminjamanController::class, 'showRiwayat'])->name('riwayat.detail');
+            Route::get('riwayat-peminjaman', [PenggunaPeminjamanController::class, 'riwayat'])->name('riwayat');
+            Route::get('form', [PenggunaPeminjamanController::class, 'create'])->name('form');
+            Route::post('form', [PenggunaPeminjamanController::class, 'store'])->name('form.store');
+            Route::get('{loan}/pengembalian', [PengembalianController::class, 'create'])->name('pengembalian.create');
+            Route::post('{loan}/pengembalian', [PengembalianController::class, 'store'])->name('pengembalian.store');
         });
     });
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('log-aktivitas', [LogAktivitasController::class, 'index'])
-            ->name('log-aktivitas.index');
+        Route::get('log-aktivitas', [LogAktivitasController::class, 'index'])->name('log-aktivitas.index');
 
         Route::get('alat/kategori', [KategoriAlatController::class, 'index'])->name('kategori.index');
         Route::post('alat/kategori', [KategoriAlatController::class, 'store'])->name('kategori.store');
@@ -130,8 +120,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ])->name('pengembalian.bulk-delete');
         });
 
-        Route::get('peminjaman/riwayat', [AdminPeminjamanController::class, 'history'])
-            ->name('peminjaman.riwayat');
+        Route::get('peminjaman/riwayat', [AdminPeminjamanController::class, 'history'])->name('peminjaman.riwayat');
 
         Route::get('peminjaman', function () {
             return redirect()->route('admin.data-peminjaman.peminjaman.index');
@@ -139,9 +128,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::middleware('role:petugas')->prefix('petugas')->name('petugas.')->group(function () {
-        Route::get('dashboard', function () {
-            return Inertia::render('dashboard');
-        })->name('dashboard');
+        Route::get('dashboard', [PetugasDashboardController::class, 'index'])->name('dashboard');
 
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
             Route::get('/', [PetugasPeminjamanController::class, 'index'])->name('index');

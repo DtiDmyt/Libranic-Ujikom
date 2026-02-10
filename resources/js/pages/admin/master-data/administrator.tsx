@@ -55,10 +55,6 @@ type PageProps = SharedData & {
     statistics: Statistics;
     roles: AccountRole[];
     statuses: Status[];
-    flash?: {
-        success?: string;
-        error?: string;
-    };
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -102,7 +98,7 @@ const formatDateTime = (value?: string | null) => {
 };
 
 export default function AdminAdministratorPage() {
-    const { items, filters, statistics, roles, statuses, flash } =
+    const { items, filters, statistics, roles, statuses } =
         usePage<PageProps>().props;
     const [selected, setSelected] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState(
@@ -118,14 +114,6 @@ export default function AdminAdministratorPage() {
         setSearchTerm(filters.name ?? filters.email ?? '');
         setSelected((prev) => prev.filter((id) => selectableIds.includes(id)));
     }, [filters.name, filters.email, selectableIds]);
-
-    useEffect(() => {
-        if (flash?.success) {
-            alertSuccess(flash.success);
-        } else if (flash?.error) {
-            alertError(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
 
     useEffect(() => {
         const currentName = filters.name ?? '';

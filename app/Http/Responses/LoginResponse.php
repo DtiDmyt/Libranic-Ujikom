@@ -21,7 +21,7 @@ class LoginResponse implements LoginResponseContract
             return new JsonResponse(['redirect' => $redirectTo], 200);
         }
 
-        return redirect()->to($redirectTo);
+        return redirect()->to($redirectTo)->with('success', 'Selamat datang kembali!');
     }
 
     private function resolveRedirectPath(Request $request): string

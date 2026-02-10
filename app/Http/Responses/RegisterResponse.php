@@ -29,6 +29,7 @@ class RegisterResponse implements RegisterResponseContract
 
         return redirect()
             ->route('login')
-            ->with('status', 'Registrasi berhasil! Silakan masuk.');
+            ->with('status', 'Registrasi berhasil! Silakan masuk.')
+            ->with('success', 'Registrasi berhasil! Silakan masuk.');
     }
 }

@@ -35,10 +35,6 @@ type PageProps = SharedData & {
         status?: string | null;
     };
     borrowers: BorrowerOption[];
-    flash?: {
-        success?: string;
-        error?: string;
-    };
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -137,7 +133,7 @@ const renderStatusBadge = (status?: string | null) => {
 };
 
 export default function PetugasDataPeminjamanPage() {
-    const { items, filters, borrowers, flash } = usePage<PageProps>().props;
+    const { items, filters, borrowers } = usePage<PageProps>().props;
 
     const [localItems, setLocalItems] = useState(items);
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
@@ -157,14 +153,6 @@ export default function PetugasDataPeminjamanPage() {
         setEditingStatusId(null);
         setStatusLoadingId(null);
     }, [items, filters.search, filters.status]);
-
-    useEffect(() => {
-        if (flash?.success) {
-            alertSuccess(flash.success);
-        } else if (flash?.error) {
-            alertError(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
 
     useEffect(() => {
         const synced =
