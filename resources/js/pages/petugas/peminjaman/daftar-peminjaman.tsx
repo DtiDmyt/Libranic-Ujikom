@@ -25,13 +25,9 @@ type LoanRow = {
     tanggal_pinjam: string;
     tanggal_pengembalian: string;
     status?: string | null;
-    return_status?: ReturnStatus | null;
-    return_status_label?: string | null;
 };
 
 type LoanStatus = 'menunggu' | 'disetujui' | 'ditolak';
-type ReturnStatus = 'menunggu' | 'tepat waktu' | 'telat' | 'rusak' | 'hilang';
-
 type PageProps = SharedData & {
     items: LoanRow[];
     filters: {
@@ -118,37 +114,6 @@ const statusOptions: { value: LoanStatus; label: string }[] = [
     { value: 'ditolak', label: statusLabels.ditolak },
 ];
 
-const returnStatusConfig: Record<
-    ReturnStatus,
-    { label: string; palette: string; dot: string }
-> = {
-    menunggu: {
-        label: 'Proses Pengecekan',
-        palette: 'bg-[#FEF3C7] text-[#C2410C]',
-        dot: 'bg-[#C2410C]',
-    },
-    'tepat waktu': {
-        label: 'Tepat Waktu',
-        palette: 'bg-[#DCFCE7] text-[#065F46]',
-        dot: 'bg-[#16A34A]',
-    },
-    telat: {
-        label: 'Telat',
-        palette: 'bg-[#FEE2E2] text-[#991B1B]',
-        dot: 'bg-[#DC2626]',
-    },
-    rusak: {
-        label: 'Rusak',
-        palette: 'bg-[#FEF3C7] text-[#C2410C]',
-        dot: 'bg-[#C2410C]',
-    },
-    hilang: {
-        label: 'Hilang',
-        palette: 'bg-[#FEE2E2] text-[#991B1B]',
-        dot: 'bg-[#DC2626]',
-    },
-};
-
 const renderStatusBadge = (status?: string | null) => {
     const normalized = normalizeStatusValue(status);
     const palette = statusStyles[normalized] ?? 'bg-[#E0E7FF] text-[#1E40AF]';
@@ -167,18 +132,6 @@ const renderStatusBadge = (status?: string | null) => {
                 }`}
             />
             {statusLabels[normalized] ?? 'Menunggu Persetujuan'}
-        </span>
-    );
-};
-
-const renderReturnStatusBadge = (status: ReturnStatus) => {
-    const metadata = returnStatusConfig[status] ?? returnStatusConfig.menunggu;
-    return (
-        <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${metadata.palette}`}
-        >
-            <span className={`h-2.5 w-2.5 rounded-full ${metadata.dot}`} />
-            {metadata.label}
         </span>
     );
 };
@@ -521,13 +474,9 @@ export default function PetugasDataPeminjamanPage() {
                                                     className="text-left"
                                                     title="Ubah status peminjaman"
                                                 >
-                                                    {item.return_status
-                                                        ? renderReturnStatusBadge(
-                                                              item.return_status,
-                                                          )
-                                                        : renderStatusBadge(
-                                                              item.status,
-                                                          )}
+                                                    {renderStatusBadge(
+                                                        item.status,
+                                                    )}
                                                 </button>
                                             )}
                                         </td>

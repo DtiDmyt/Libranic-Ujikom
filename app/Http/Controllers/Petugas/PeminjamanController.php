@@ -17,7 +17,8 @@ class PeminjamanController extends Controller
         $search = $request->string('search')->toString();
         $statusFilter = $request->string('status')->toString() ?: 'semua';
 
-        $query = Peminjaman::with(['alat', 'user', 'pengembalian']);
+        $query = Peminjaman::with(['alat', 'user', 'pengembalian'])
+            ->whereIn('status', ['menunggu', 'disetujui', 'ditolak']);
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search) {
@@ -33,8 +34,7 @@ class PeminjamanController extends Controller
         }
 
         $items = $query->latest('created_at')->get()->map(function (Peminjaman $loan) {
-            $returnStatus = $loan->pengembalian?->status;
-            $status = $loan->status ?? 'baik';
+            $status = $loan->status ?? 'menunggu persetujuan';
 
             $kondisi = match ($status) {
                 'rusak' => 'rusak',
@@ -51,9 +51,7 @@ class PeminjamanController extends Controller
                 'kondisi_barang' => $kondisi,
                 'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
                 'tanggal_pengembalian' => $loan->tanggal_kembali?->toDateString(),
-                'status' => $loan->status ?? 'menunggu persetujuan',
-                'return_status' => $returnStatus,
-                'return_status_label' => $this->resolveReturnStatusLabel($returnStatus),
+                'status' => $status,
             ];
         });
 
@@ -116,17 +114,5 @@ class PeminjamanController extends Controller
         );
 
         return response()->json(['status' => 'ok']);
-    }
-
-    private function resolveReturnStatusLabel(?string $status): ?string
-    {
-        return match ($status) {
-            'tepat waktu' => 'Tepat Waktu',
-            'telat' => 'Telat',
-            'rusak' => 'Rusak',
-            'hilang' => 'Hilang',
-            'menunggu' => 'Proses Pengecekan',
-            default => null,
-        };
     }
 }
