@@ -12,6 +12,7 @@ use App\Http\Controllers\Pengguna\DaftarAlatController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
 use App\Http\Controllers\Pengguna\PengembalianController;
 use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
+use App\Http\Controllers\Petugas\PengembalianController as PetugasPengembalianController;
 
 Route::get('/', function () {
     if (! Auth::check()) {
@@ -92,16 +93,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
         });
 
-        Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
-            Route::get('/', [AdminPeminjamanController::class, 'index'])->name('index');
-            Route::get('data', [AdminPeminjamanController::class, 'index'])->name('data.index');
-            Route::get('data/tambah', [AdminPeminjamanController::class, 'create'])->name('data.tambah');
-            Route::post('data', [AdminPeminjamanController::class, 'store'])->name('data.store');
-            Route::patch('data/{loan}', [AdminPeminjamanController::class, 'update'])->name('data.update');
-            Route::get('data/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('data.edit');
-            Route::get('data/{loan}', [AdminPeminjamanController::class, 'show'])->name('data.show');
-            Route::get('pengembalian', [AdminPengembalianController::class, 'index'])
-                ->name('pengembalian.index');
+        Route::prefix('data-peminjaman')->name('data-peminjaman.')->group(function () {
+            Route::get('peminjaman', [AdminPeminjamanController::class, 'index'])->name('peminjaman.index');
+            Route::get('peminjaman/tambah', [AdminPeminjamanController::class, 'create'])->name('peminjaman.tambah');
+            Route::post('peminjaman', [AdminPeminjamanController::class, 'store'])->name('peminjaman.store');
+            Route::patch('peminjaman/{loan}', [AdminPeminjamanController::class, 'update'])->name('peminjaman.update');
+            Route::delete('peminjaman/{loan}', [AdminPeminjamanController::class, 'destroy'])->name('peminjaman.destroy');
+            Route::get('peminjaman/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('peminjaman.edit');
+            Route::get('peminjaman/{loan}', [AdminPeminjamanController::class, 'show'])->name('peminjaman.show');
+            Route::patch('peminjaman/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('peminjaman.status');
+            Route::delete('peminjaman/bulk-delete', [AdminPeminjamanController::class, 'bulkDestroy'])->name('peminjaman.bulk-delete');
+            Route::patch('peminjaman/bulk-selesai', [AdminPeminjamanController::class, 'bulkComplete'])->name('peminjaman.bulk-complete');
+        });
+
+        Route::prefix('data-pengembalian')->name('data-pengembalian.')->group(function () {
+            Route::get('pengembalian', [AdminPengembalianController::class, 'index'])->name('pengembalian.index');
             Route::patch('pengembalian/{pengembalian}/status', [
                 AdminPengembalianController::class,
                 'updateStatus',
@@ -118,7 +124,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 AdminPengembalianController::class,
                 'bulkDestroy',
             ])->name('pengembalian.bulk-delete');
-            Route::patch('data/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('data.status');
+        });
+
+        Route::get('peminjaman/riwayat', [AdminPeminjamanController::class, 'history'])
+            ->name('peminjaman.riwayat');
+
+        Route::get('peminjaman', function () {
+            return redirect()->route('admin.data-peminjaman.peminjaman.index');
         });
     });
 
@@ -130,6 +142,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
             Route::get('/', [PetugasPeminjamanController::class, 'index'])->name('index');
             Route::patch('{loan}/status', [PetugasPeminjamanController::class, 'updateStatus'])->name('status');
+        });
+
+        Route::prefix('pengembalian')->name('pengembalian.')->group(function () {
+            Route::get('/', [PetugasPengembalianController::class, 'index'])->name('index');
+            Route::get('{pengembalian}', [PetugasPengembalianController::class, 'show'])->name('show');
+            Route::patch('{pengembalian}/status', [PetugasPengembalianController::class, 'updateStatus'])->name('status');
         });
     });
 });

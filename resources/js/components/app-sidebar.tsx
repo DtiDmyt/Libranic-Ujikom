@@ -121,12 +121,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         subItems: [
                             {
                                 title: 'Data Peminjaman',
-                                href: '/admin/peminjaman',
+                                href: '/admin/data-peminjaman/peminjaman',
                                 icon: ClipboardList,
                             },
                             {
                                 title: 'Data Pengembalian',
-                                href: '/admin/peminjaman/pengembalian',
+                                href: '/admin/data-pengembalian/pengembalian',
                                 icon: RotateCcw,
                             },
                             {
@@ -175,7 +175,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     },
                     {
                         title: 'Data Pengembalian',
-                        href: '/petugas/data-pengembalian',
+                        href: '/petugas/pengembalian',
                         icon: ClipboardList,
                     },
                     {

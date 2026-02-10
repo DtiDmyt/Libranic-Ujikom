@@ -16,7 +16,7 @@ class PeminjamanController extends Controller
         $search = $request->string('search')->toString();
         $statusFilter = $request->string('status')->toString() ?: 'semua';
 
-        $query = Peminjaman::with(['alat', 'user']);
+        $query = Peminjaman::with(['alat', 'user', 'pengembalian']);
 
         if ($search !== '') {
             $query->where(function ($builder) use ($search) {
@@ -32,6 +32,7 @@ class PeminjamanController extends Controller
         }
 
         $items = $query->latest('created_at')->get()->map(function (Peminjaman $loan) {
+            $returnStatus = $loan->pengembalian?->status;
             $status = $loan->status ?? 'baik';
 
             $kondisi = match ($status) {
@@ -50,6 +51,8 @@ class PeminjamanController extends Controller
                 'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
                 'tanggal_pengembalian' => $loan->tanggal_kembali?->toDateString(),
                 'status' => $loan->status ?? 'menunggu persetujuan',
+                'return_status' => $returnStatus,
+                'return_status_label' => $this->resolveReturnStatusLabel($returnStatus),
             ];
         });
 
@@ -85,5 +88,17 @@ class PeminjamanController extends Controller
         $loan->save();
 
         return response()->json(['status' => 'ok']);
+    }
+
+    private function resolveReturnStatusLabel(?string $status): ?string
+    {
+        return match ($status) {
+            'tepat waktu' => 'Tepat Waktu',
+            'telat' => 'Telat',
+            'rusak' => 'Rusak',
+            'hilang' => 'Hilang',
+            'menunggu' => 'Proses Pengecekan',
+            default => null,
+        };
     }
 }

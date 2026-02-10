@@ -34,6 +34,7 @@ type ReturnFormFields = {
     kondisi: string;
     catatan: string;
     lampiran: File | null;
+    _token: string;
 };
 
 type PageProps = SharedData & {
@@ -104,10 +105,17 @@ const finalStatusConfigs: Record<string, { label: string; className: string }> =
 
 export default function PenggunaFormPengembalianPage() {
     const { borrower, alat, loan } = usePage<PageProps>().props;
+    const csrfToken =
+        typeof document !== 'undefined'
+            ? (document
+                  .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                  ?.getAttribute('content') ?? '')
+            : '';
     const form = useForm<ReturnFormFields>({
         kondisi: 'baik',
         catatan: '',
         lampiran: null,
+        _token: csrfToken,
     });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);

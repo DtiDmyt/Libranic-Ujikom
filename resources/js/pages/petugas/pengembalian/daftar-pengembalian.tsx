@@ -1,124 +1,45 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import axios from 'axios';
-import { useEffect, useMemo, useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
-import {
-    alertError,
-    alertLoading,
-    alertSuccess,
-    closeAlert,
-} from '@/lib/alert';
-import FormPenolakan from './form-penolakan';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+import Swal from 'sweetalert2';
 
-type BorrowerOption = {
-    nama: string;
-    kelas?: string | null;
-};
-
-type LoanRow = {
-    id: number;
-    nama_barang: string;
-    peminjam: string;
-    kelas?: string | null;
-    jumlah: number;
-    tanggal_pinjam: string;
-    tanggal_pengembalian: string;
-    status?: string | null;
-    return_status?: ReturnStatus | null;
-    return_status_label?: string | null;
-};
-
-type LoanStatus = 'menunggu' | 'disetujui' | 'ditolak';
 type ReturnStatus = 'menunggu' | 'tepat waktu' | 'telat' | 'rusak' | 'hilang';
 
+type ReturnRow = {
+    pengembalian_id: number;
+    loan_id: number | null;
+    nama_barang: string;
+    peminjam: string;
+    kelas: string;
+    jumlah: number;
+    tanggal_pinjam?: string | null;
+    batas_peminjaman?: string | null;
+    tanggal_dikembalikan?: string | null;
+    status: ReturnStatus;
+    detail_url: string;
+};
+
 type PageProps = SharedData & {
-    items: LoanRow[];
+    items: ReturnRow[];
     filters: {
         search?: string | null;
-        status?: string | null;
-    };
-    borrowers: BorrowerOption[];
-    flash?: {
-        success?: string;
-        error?: string;
+        status?: ReturnStatus | 'semua';
     };
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Petugas Dashboard', href: '/petugas/dashboard' },
-    { title: 'Data Peminjaman', href: '/petugas/peminjaman' },
+    { title: 'Data Pengembalian', href: '/petugas/pengembalian' },
 ];
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'medium',
-});
+const dateFormatter = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' });
 
 const formatDate = (value?: string | null) =>
     value ? dateFormatter.format(new Date(value)) : '-';
 
-const normalizeStatusValue = (status?: string | null): string => {
-    if (!status) {
-        return 'menunggu';
-    }
-
-    const normalized = status.toLowerCase().trim();
-    if (normalized === 'menunggu persetujuan' || normalized === 'pending') {
-        return 'menunggu';
-    }
-
-    if (normalized === 'selesai') {
-        return 'disetujui';
-    }
-
-    return normalized;
-};
-
-const normalizeEditableStatus = (status?: string | null): LoanStatus => {
-    const normalized = normalizeStatusValue(status);
-    if (normalized === 'disetujui') {
-        return 'disetujui';
-    }
-
-    if (normalized === 'ditolak') {
-        return 'ditolak';
-    }
-
-    return 'menunggu';
-};
-
-const statusLabels: Record<string, string> = {
-    menunggu: 'Menunggu Persetujuan',
-    'menunggu persetujuan': 'Menunggu Persetujuan',
-    pending: 'Menunggu Persetujuan',
-    disetujui: 'Disetujui',
-    ditolak: 'Ditolak',
-    selesai: 'Selesai',
-};
-
-const statusStyles: Record<string, string> = {
-    menunggu: 'bg-[#FEF3C7] text-[#C2410C]',
-    'menunggu persetujuan': 'bg-[#FEF3C7] text-[#C2410C]',
-    pending: 'bg-[#FEF3C7] text-[#C2410C]',
-    disetujui: 'bg-[#ECFDF5] text-[#065F46]',
-    ditolak: 'bg-[#FEE2E2] text-[#991B1B]',
-    selesai: 'bg-[#DCFCE7] text-[#065F46]',
-};
-
-const statusFilters = [
-    { value: 'semua', label: 'Semua Status' },
-    { value: 'menunggu', label: 'Menunggu Persetujuan' },
-    { value: 'disetujui', label: 'Disetujui' },
-    { value: 'ditolak', label: 'Ditolak' },
-];
-
-const statusOptions: { value: LoanStatus; label: string }[] = [
-    { value: 'menunggu', label: statusLabels.menunggu },
-    { value: 'disetujui', label: statusLabels.disetujui },
-    { value: 'ditolak', label: statusLabels.ditolak },
-];
-
-const returnStatusConfig: Record<
+const statusConfig: Record<
     ReturnStatus,
     { label: string; palette: string; dot: string }
 > = {
@@ -149,30 +70,18 @@ const returnStatusConfig: Record<
     },
 };
 
-const renderStatusBadge = (status?: string | null) => {
-    const normalized = normalizeStatusValue(status);
-    const palette = statusStyles[normalized] ?? 'bg-[#E0E7FF] text-[#1E40AF]';
+const statusOptions = (Object.keys(statusConfig) as ReturnStatus[]).map(
+    (value) => ({
+        value,
+        label: statusConfig[value].label,
+    }),
+);
 
-    return (
-        <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${palette}`}
-        >
-            <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                    normalized === 'disetujui'
-                        ? 'bg-[#10B981]'
-                        : normalized === 'ditolak'
-                          ? 'bg-[#DC2626]'
-                          : 'bg-[#F97316]'
-                }`}
-            />
-            {statusLabels[normalized] ?? 'Menunggu Persetujuan'}
-        </span>
-    );
-};
+const statusFilterOptions: { value: ReturnStatus | 'semua'; label: string }[] =
+    [{ value: 'semua', label: 'Semua Status' }, ...statusOptions];
 
-const renderReturnStatusBadge = (status: ReturnStatus) => {
-    const metadata = returnStatusConfig[status] ?? returnStatusConfig.menunggu;
+const renderStatusBadge = (status: ReturnStatus) => {
+    const metadata = statusConfig[status] ?? statusConfig.menunggu;
     return (
         <span
             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${metadata.palette}`}
@@ -183,181 +92,80 @@ const renderReturnStatusBadge = (status: ReturnStatus) => {
     );
 };
 
-export default function PetugasDataPeminjamanPage() {
-    const { items, filters, borrowers, flash } = usePage<PageProps>().props;
-
-    const [localItems, setLocalItems] = useState(items);
+export default function PetugasDataPengembalianPage() {
+    const { items, filters } = usePage<PageProps>().props;
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
-    const [statusFilter, setStatusFilter] = useState(filters.status ?? 'semua');
-    const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
-    const [pendingStatus, setPendingStatus] = useState<LoanStatus>('menunggu');
-    const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
-    const [rejectModalOpen, setRejectModalOpen] = useState(false);
-    const [rejectionTarget, setRejectionTarget] = useState<LoanRow | null>(
-        null,
+    const [statusFilter, setStatusFilter] = useState<ReturnStatus | 'semua'>(
+        filters.status ?? 'semua',
     );
+    const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
+    const [pendingStatus, setPendingStatus] =
+        useState<ReturnStatus>('menunggu');
+    const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
 
     useEffect(() => {
-        setLocalItems(items);
         setSearchTerm(filters.search ?? '');
         setStatusFilter(filters.status ?? 'semua');
         setEditingStatusId(null);
         setStatusLoadingId(null);
-    }, [items, filters.search, filters.status]);
+    }, [filters.search, filters.status]);
 
     useEffect(() => {
-        if (flash?.success) {
-            alertSuccess(flash.success);
-        } else if (flash?.error) {
-            alertError(flash.error);
-        }
-    }, [flash?.success, flash?.error]);
-
-    useEffect(() => {
-        const synced =
+        if (
             searchTerm === (filters.search ?? '') &&
-            statusFilter === (filters.status ?? 'semua');
-
-        if (synced) {
+            statusFilter === (filters.status ?? 'semua')
+        ) {
             return;
         }
 
         const timeout = window.setTimeout(() => {
-            const query: Record<string, unknown> = {
-                search: searchTerm,
-                status: statusFilter,
-            };
-
-            router.get('/petugas/peminjaman', query, {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            });
+            router.get(
+                '/petugas/pengembalian',
+                {
+                    search: searchTerm,
+                    status: statusFilter,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                },
+            );
         }, 400);
 
         return () => window.clearTimeout(timeout);
     }, [searchTerm, statusFilter, filters.search, filters.status]);
 
-    const hideRejectModal = () => {
-        setRejectModalOpen(false);
-        setRejectionTarget(null);
-    };
-
-    const cancelRejectModal = () => {
-        if (rejectionTarget) {
-            setPendingStatus(normalizeEditableStatus(rejectionTarget.status));
-        }
-        hideRejectModal();
-    };
-
-    const borrowerMap = useMemo(() => {
-        const map = new Map<string, BorrowerOption>();
-        borrowers.forEach((borrower) => {
-            map.set(borrower.nama, borrower);
-        });
-        return map;
-    }, [borrowers]);
-
-    const beginStatusEdit = (item: LoanRow) => {
-        setEditingStatusId(item.id);
-        setPendingStatus(normalizeEditableStatus(item.status));
+    const beginStatusEdit = (item: ReturnRow) => {
+        setEditingStatusId(item.pengembalian_id);
+        setPendingStatus(item.status);
     };
 
     const cancelStatusEdit = () => {
-        hideRejectModal();
         setEditingStatusId(null);
         setStatusLoadingId(null);
-        setPendingStatus('menunggu');
     };
 
-    const updateLoanStatus = async (
-        id: number,
-        status: LoanStatus,
-        options?: { reason?: string },
-    ) => {
-        const payload: Record<string, unknown> = { status };
-        if (options?.reason) {
-            payload.reason = options.reason;
-        }
-
-        const loadingMessage =
-            status === 'disetujui'
-                ? 'Menyetujui peminjaman...'
-                : status === 'ditolak'
-                  ? 'Menolak peminjaman...'
-                  : 'Mengatur status menunggu...';
-        const successMessage =
-            status === 'disetujui'
-                ? 'Peminjaman disetujui.'
-                : status === 'ditolak'
-                  ? 'Peminjaman ditolak.'
-                  : 'Status dikembalikan ke menunggu.';
-        const errorMessage =
-            status === 'disetujui'
-                ? 'Tidak dapat menandai selesai.'
-                : status === 'ditolak'
-                  ? 'Tidak dapat menolak peminjaman.'
-                  : 'Tidak dapat mengatur status menunggu.';
-
-        setStatusLoadingId(id);
-        alertLoading(loadingMessage);
+    const submitStatusEdit = async (item: ReturnRow) => {
+        setStatusLoadingId(item.pengembalian_id);
         try {
-            await axios.patch(`/petugas/peminjaman/${id}/status`, payload);
-            setLocalItems((prev) =>
-                prev.map((item) =>
-                    item.id === id
-                        ? {
-                              ...item,
-                              status,
-                          }
-                        : item,
-                ),
+            await axios.patch(
+                `/petugas/pengembalian/${item.pengembalian_id}/status`,
+                { status: pendingStatus },
             );
-            cancelStatusEdit();
-            closeAlert();
-            alertSuccess(successMessage);
+            Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
+            setEditingStatusId(null);
+            router.reload({ preserveState: true, preserveScroll: true });
         } catch (error) {
-            closeAlert();
-            alertError(errorMessage);
+            Swal.fire('Gagal', 'Tidak dapat memperbarui status.', 'error');
         } finally {
             setStatusLoadingId(null);
         }
     };
 
-    const handleRejectSubmit = (reason: string) => {
-        if (!rejectionTarget) {
-            return;
-        }
-        setStatusLoadingId(rejectionTarget.id);
-        updateLoanStatus(rejectionTarget.id, 'ditolak', { reason });
-    };
-
-    const submitStatusEdit = (item: LoanRow) => {
-        const nextStatus = pendingStatus;
-        const currentStatus = normalizeEditableStatus(item.status);
-
-        if (nextStatus === currentStatus) {
-            cancelStatusEdit();
-            return;
-        }
-
-        const proceed = (reason?: string) => {
-            setStatusLoadingId(item.id);
-            updateLoanStatus(item.id, nextStatus, { reason });
-        };
-
-        if (nextStatus === 'ditolak') {
-            setRejectionTarget(item);
-            setRejectModalOpen(true);
-            return;
-        }
-
-        proceed();
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Data Peminjaman" />
+            <Head title="Data Pengembalian" />
             <div className="space-y-6 bg-[#F5F1EA] p-6">
                 <div>
                     <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
@@ -365,12 +173,12 @@ export default function PetugasDataPeminjamanPage() {
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-4">
                         <h1 className="text-3xl font-bold text-[#1A3263]">
-                            Data Peminjaman
+                            Data Pengembalian
                         </h1>
                     </div>
                     <p className="mt-1 text-sm text-[#547792]">
-                        Pantau seluruh transaksi peminjaman alat yang sedang
-                        berjalan ataupun selesai.
+                        Pantau status akhir pengembalian dan ubah status
+                        pemeriksaan bila diperlukan.
                     </p>
                 </div>
 
@@ -398,19 +206,23 @@ export default function PetugasDataPeminjamanPage() {
                                             value={statusFilter}
                                             onChange={(event) =>
                                                 setStatusFilter(
-                                                    event.target.value,
+                                                    event.target.value as
+                                                        | ReturnStatus
+                                                        | 'semua',
                                                 )
                                             }
                                             className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
                                         >
-                                            {statusFilters.map((option) => (
-                                                <option
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </option>
-                                            ))}
+                                            {statusFilterOptions.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                ),
+                                            )}
                                         </select>
                                     </th>
                                     <th className="px-4 py-3" colSpan={2}>
@@ -422,8 +234,8 @@ export default function PetugasDataPeminjamanPage() {
                                                     event.target.value,
                                                 )
                                             }
-                                            className="w-full max-w-md rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
                                             placeholder="Cari nama barang / peminjam"
+                                            className="w-full max-w-md rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
                                         />
                                     </th>
                                     <th className="px-4 py-3" />
@@ -432,30 +244,27 @@ export default function PetugasDataPeminjamanPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {localItems.map((item, index) => (
+                                {items.map((item, index) => (
                                     <tr
-                                        key={item.id}
+                                        key={item.pengembalian_id}
                                         className="text-sm transition hover:bg-[#F8F6F1]"
                                     >
                                         <td className="px-4 py-4 font-semibold text-[#1A3263]">
                                             {index + 1}
                                         </td>
                                         <td className="px-4 py-4 text-[#1A3263]">
-                                            {editingStatusId === item.id ? (
+                                            {editingStatusId ===
+                                            item.pengembalian_id ? (
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <select
                                                         value={pendingStatus}
                                                         onChange={(event) =>
                                                             setPendingStatus(
                                                                 event.target
-                                                                    .value as LoanStatus,
+                                                                    .value as ReturnStatus,
                                                             )
                                                         }
                                                         className="rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
-                                                        disabled={
-                                                            statusLoadingId ===
-                                                            item.id
-                                                        }
                                                         autoFocus
                                                     >
                                                         {statusOptions.map(
@@ -484,17 +293,17 @@ export default function PetugasDataPeminjamanPage() {
                                                         }
                                                         disabled={
                                                             statusLoadingId ===
-                                                            item.id
+                                                            item.pengembalian_id
                                                         }
-                                                        className={`rounded-2xl px-3 py-2 text-xs font-semibold text-white transition ${
+                                                        className={`rounded-2xl px-3 py-2 text-xs font-semibold text-white ${
                                                             statusLoadingId ===
-                                                            item.id
+                                                            item.pengembalian_id
                                                                 ? 'bg-slate-300'
                                                                 : 'bg-[#1A3263] hover:bg-[#0F1D3A]'
                                                         }`}
                                                     >
                                                         {statusLoadingId ===
-                                                        item.id
+                                                        item.pengembalian_id
                                                             ? 'Menyimpan...'
                                                             : 'Simpan'}
                                                     </button>
@@ -505,7 +314,7 @@ export default function PetugasDataPeminjamanPage() {
                                                         }
                                                         disabled={
                                                             statusLoadingId ===
-                                                            item.id
+                                                            item.pengembalian_id
                                                         }
                                                         className="rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs font-semibold text-[#1A3263] transition hover:bg-[#F5F7FB]"
                                                     >
@@ -519,33 +328,31 @@ export default function PetugasDataPeminjamanPage() {
                                                         beginStatusEdit(item)
                                                     }
                                                     className="text-left"
-                                                    title="Ubah status peminjaman"
+                                                    title="Ubah status pengembalian"
                                                 >
-                                                    {item.return_status
-                                                        ? renderReturnStatusBadge(
-                                                              item.return_status,
-                                                          )
-                                                        : renderStatusBadge(
-                                                              item.status,
-                                                          )}
+                                                    {renderStatusBadge(
+                                                        item.status,
+                                                    )}
                                                 </button>
                                             )}
                                         </td>
                                         <td className="px-4 py-4 text-[#1A3263]">
-                                            <p className="font-semibold">
+                                            <Link
+                                                href={item.detail_url}
+                                                className="font-semibold text-[#1A3263] underline decoration-transparent transition hover:decoration-[#1A3263]"
+                                            >
                                                 {item.nama_barang}
-                                            </p>
+                                            </Link>
                                         </td>
                                         <td className="px-4 py-4 text-[#1A3263]">
                                             <p className="font-medium">
                                                 {item.peminjam}
                                             </p>
                                             <p className="text-xs text-[#547792]">
-                                                {borrowerMap.get(item.peminjam)
-                                                    ?.kelas ?? '-'}
+                                                {item.kelas}
                                             </p>
                                         </td>
-                                        <td className="px-4 py-4 text-[#1A3263]">
+                                        <td className="px-4 py-4 font-semibold text-[#1A3263]">
                                             {item.jumlah}
                                         </td>
                                         <td className="px-4 py-4 text-[#547792]">
@@ -553,38 +360,30 @@ export default function PetugasDataPeminjamanPage() {
                                         </td>
                                         <td className="px-4 py-4 text-[#547792]">
                                             {formatDate(
-                                                item.tanggal_pengembalian,
+                                                item.tanggal_dikembalikan,
                                             )}
                                         </td>
                                     </tr>
                                 ))}
-                                {localItems.length === 0 ? (
+                                {items.length === 0 && (
                                     <tr>
                                         <td
                                             colSpan={7}
                                             className="px-6 py-10 text-center text-sm text-[#547792]"
                                         >
-                                            Tidak ada data peminjaman.
+                                            Belum ada pengembalian untuk
+                                            ditampilkan.
                                         </td>
                                     </tr>
-                                ) : null}
+                                )}
                             </tbody>
                         </table>
                     </div>
-
                     <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {localItems.length} data
+                        Menampilkan {items.length} data
                     </div>
                 </div>
             </div>
-            <FormPenolakan
-                open={rejectModalOpen}
-                loading={Boolean(
-                    rejectionTarget && statusLoadingId === rejectionTarget.id,
-                )}
-                onClose={cancelRejectModal}
-                onSubmit={handleRejectSubmit}
-            />
         </AppLayout>
     );
 }

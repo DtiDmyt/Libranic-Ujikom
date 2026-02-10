@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->foreignId('peminjaman_id')->constrained('peminjaman')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->date('tanggal_pengembalian');
+            $table->string('status')->default('menunggu');
             $table->string('kondisi', 50);
             $table->text('catatan')->nullable();
             $table->string('lampiran_path')->nullable();

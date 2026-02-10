@@ -72,9 +72,9 @@ type PageProps = SharedData & {
 
 const breadcrumbs = (id: number): BreadcrumbItem[] => [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Peminjaman', href: '/admin/peminjaman' },
-    { title: 'Data Peminjaman', href: '/admin/peminjaman' },
-    { title: 'Edit Peminjaman', href: `/admin/peminjaman/data/${id}/edit` },
+    { title: 'Manajemen Peminjaman', href: '/admin/data-peminjaman/peminjaman' },
+    { title: 'Data Peminjaman', href: '/admin/data-peminjaman/peminjaman' },
+    { title: 'Edit Peminjaman', href: `/admin/data-peminjaman/peminjaman/${id}/edit` },
 ];
 
 export default function AdminEditPeminjamanPage() {
@@ -185,7 +185,7 @@ export default function AdminEditPeminjamanPage() {
     const handleSubmit = () => {
         alertLoading('Sedang memperbarui data peminjaman...');
         form.transform((data) => ({ ...data, _method: 'patch' }));
-        form.post(`/admin/peminjaman/data/${loan.id}`, {
+        form.post(`/admin/data-peminjaman/peminjaman/${loan.id}`, {
             preserveScroll: true,
             onSuccess: () => {
                 closeAlert();
@@ -226,7 +226,7 @@ export default function AdminEditPeminjamanPage() {
                         </p>
                     </div>
                     <Link
-                        href={`/admin/peminjaman/data/${loan.id}`}
+                        href={`/admin/data-peminjaman/peminjaman/${loan.id}`}
                         className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                     >
                         <ArrowLeft className="h-4 w-4" /> Kembali
@@ -592,7 +592,7 @@ export default function AdminEditPeminjamanPage() {
                                     Simpan Perubahan
                                 </button>
                                 <Link
-                                    href={`/admin/peminjaman/data/${loan.id}`}
+                                    href={`/admin/data-peminjaman/peminjaman/${loan.id}`}
                                     className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                                 >
                                     Batal

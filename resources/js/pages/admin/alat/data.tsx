@@ -31,6 +31,10 @@ type ItemRow = {
     denda_keterlambatan: number;
     gambar_url?: string | null;
     created_at?: string | null;
+    kode_alat?: string | null;
+    stok?: number | null;
+    kondisi_alat?: string | null;
+    deskripsi?: string | null;
 };
 
 type CategoryOption = {
@@ -71,14 +75,6 @@ const statusStyles: Record<Status, string> = {
 
 const jurusanOptions = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
 
-const escapeHtml = (input: string) =>
-    input
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -97,6 +93,7 @@ export default function AdminDataAlatPage() {
 
     const [selected, setSelected] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
+    const [detailItem, setDetailItem] = useState<ItemRow | null>(null);
 
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
@@ -266,29 +263,10 @@ export default function AdminDataAlatPage() {
     };
 
     const handleShowDetail = (item: ItemRow) => {
-        const detailHtml = `
-            <div class="space-y-2 text-left text-sm text-[#1A3263]">
-                <p><span class="font-semibold">Kode Alat:</span> ${escapeHtml(item.kode_alat ?? '-')}</p>
-                <p><span class="font-semibold">Stok:</span> ${item.stok}</p>
-                <p><span class="font-semibold">Kategori Jurusan:</span> ${escapeHtml(item.kategori_jurusan)}</p>
-                <p><span class="font-semibold">Kategori Alat:</span> ${escapeHtml(item.kategori_alat ?? '-')}</p>
-                <p><span class="font-semibold">Ruangan:</span> ${escapeHtml(item.ruangan)}</p>
-                <p><span class="font-semibold">Status:</span> ${statusLabels[item.status]}</p>
-                <p><span class="font-semibold">Denda per Hari:</span> ${escapeHtml(formatCurrency(item.denda_keterlambatan))}</p>
-                <p><span class="font-semibold">Kondisi:</span> ${escapeHtml(item.kondisi_alat)}</p>
-                <p><span class="font-semibold">Deskripsi:</span> ${escapeHtml(item.deskripsi ?? '-')}</p>
-            </div>
-        `;
-
-        Swal.fire({
-            title: escapeHtml(item.nama_alat),
-            html: item.gambar_url
-                ? `<div class="mb-4 overflow-hidden rounded-2xl border border-[#E8E2DB]"><img src="${item.gambar_url}" alt="${escapeHtml(item.nama_alat)}" class="h-48 w-full object-cover" /></div>${detailHtml}`
-                : detailHtml,
-            confirmButtonText: 'Tutup',
-            customClass: { popup: 'rounded-2xl text-left' },
-        });
+        setDetailItem(item);
     };
+
+    const closeDetailModal = () => setDetailItem(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -583,6 +561,109 @@ export default function AdminDataAlatPage() {
                     </div>
                 </div>
             </div>
+            {detailItem ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur"
+                        onClick={closeDetailModal}
+                    />
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-[#E8E2DB] px-6 py-4">
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                    Detail Alat
+                                </p>
+                                <h2 className="text-xl font-bold text-[#1A3263]">
+                                    {detailItem.nama_alat}
+                                </h2>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeDetailModal}
+                                className="text-sm font-semibold text-[#1A3263] underline"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                        {detailItem.gambar_url ? (
+                            <div className="border-b border-[#E8E2DB]">
+                                <img
+                                    src={detailItem.gambar_url}
+                                    alt={detailItem.nama_alat}
+                                    className="h-60 w-full object-cover"
+                                />
+                            </div>
+                        ) : null}
+                        <div className="space-y-4 p-6 text-sm text-[#1A3263]">
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <p>
+                                    <span className="font-semibold">
+                                        Kode Alat:
+                                    </span>{' '}
+                                    {detailItem.kode_alat ?? '-'}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">Stok:</span>{' '}
+                                    {detailItem.stok ?? 0} unit
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Kondisi:
+                                    </span>{' '}
+                                    {detailItem.kondisi_alat ?? '-'}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Status:
+                                    </span>{' '}
+                                    <span
+                                        className={
+                                            statusStyles[detailItem.status]
+                                        }
+                                    >
+                                        {statusLabels[detailItem.status]}
+                                    </span>
+                                </p>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <p>
+                                    <span className="font-semibold">
+                                        Kategori Jurusan:
+                                    </span>{' '}
+                                    {detailItem.kategori_jurusan}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Kategori Alat:
+                                    </span>{' '}
+                                    {detailItem.kategori_alat ?? '-'}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Ruangan:
+                                    </span>{' '}
+                                    {detailItem.ruangan}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Denda / Hari:
+                                    </span>{' '}
+                                    {formatCurrency(
+                                        detailItem.denda_keterlambatan,
+                                    )}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-semibold">Deskripsi</p>
+                                <p className="mt-1 whitespace-pre-line text-[#1A3263]">
+                                    {detailItem.deskripsi ??
+                                        'Tidak ada deskripsi.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </AppLayout>
     );
 }

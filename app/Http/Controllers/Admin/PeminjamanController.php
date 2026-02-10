@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\DaftarBarang;
 use App\Models\Peminjaman;
+use App\Models\Pengembalian;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,7 +23,7 @@ class PeminjamanController extends Controller
         $search = $request->string('search')->toString();
         $statusFilter = $request->string('status')->toString() ?: 'semua';
 
-        $query = Peminjaman::with(['alat', 'user']);
+        $query = Peminjaman::with(['alat', 'user', 'pengembalian']);
 
         if ($statusFilter !== 'semua') {
             $query->where('status', $statusFilter);
@@ -36,6 +39,7 @@ class PeminjamanController extends Controller
         }
 
         $items = $query->latest('created_at')->get()->map(function (Peminjaman $loan) {
+            $returnStatus = $loan->pengembalian?->status;
             return [
                 'id' => $loan->id,
                 'nama_barang' => $loan->alat?->nama_alat ?? '-',
@@ -45,6 +49,8 @@ class PeminjamanController extends Controller
                 'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
                 'tanggal_pengembalian' => $loan->tanggal_kembali?->toDateString(),
                 'status' => $loan->status,
+                'return_status' => $returnStatus,
+                'return_status_label' => $this->resolveReturnStatusLabel($returnStatus),
             ];
         });
 
@@ -123,7 +129,7 @@ class PeminjamanController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.peminjaman.data.index')
+            ->route('admin.data-peminjaman.peminjaman.index')
             ->with('success', 'Peminjaman berhasil ditambahkan.');
     }
 
@@ -159,8 +165,53 @@ class PeminjamanController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.peminjaman.data.index')
+            ->route('admin.data-peminjaman.peminjaman.index')
             ->with('success', 'Data peminjaman berhasil diperbarui.');
+    }
+
+    public function destroy(Peminjaman $loan): JsonResponse
+    {
+        $loan->delete();
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function bulkDestroy(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:peminjaman,id'],
+        ]);
+
+        Peminjaman::whereIn('id', $data['ids'])->delete();
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function bulkComplete(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:peminjaman,id'],
+        ]);
+
+        Peminjaman::whereIn('id', $data['ids'])->update(['status' => 'disetujui']);
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    public function updateStatus(Request $request, Peminjaman $loan): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:menunggu,disetujui,ditolak'],
+            'reason' => ['required_if:status,ditolak', 'string', 'max:500'],
+        ]);
+
+        $loan->status = $data['status'];
+        $loan->alasan_penolakan = $data['status'] === 'ditolak' ? $data['reason'] : null;
+        $loan->save();
+
+        return response()->json(['status' => 'ok']);
     }
 
     public function edit(int $loanId): Response
@@ -185,6 +236,64 @@ class PeminjamanController extends Controller
         return Inertia::render('admin/manajamen-peminjaman/data-peminjaman/detail-peminjaman', [
             'loan' => $this->formatLoanForDetail($loan),
             'history' => $this->extensionHistory(),
+        ]);
+    }
+
+    public function history(Request $request): Response
+    {
+        $search = $request->string('search')->toString();
+        $statusFilter = $request->string('status')->toString() ?: 'semua';
+
+        $query = Pengembalian::with(['peminjaman.alat'])
+            ->whereNotNull('tanggal_pengembalian');
+
+        if ($statusFilter !== 'semua') {
+            $query->where('status', $statusFilter);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search) {
+                $builder->whereHas('peminjaman', function ($loanQuery) use ($search) {
+                    $loanQuery->where('nama_peminjam', 'like', '%' . $search . '%')
+                        ->orWhereHas('alat', function ($toolQuery) use ($search) {
+                            $toolQuery->where('nama_alat', 'like', '%' . $search . '%');
+                        });
+                });
+            });
+        }
+
+        $items = $query->orderByDesc('tanggal_pengembalian')
+            ->get()
+            ->map(function (Pengembalian $return) {
+                $loan = $return->peminjaman;
+                $tool = $loan?->alat;
+
+                return [
+                    'id' => $return->id,
+                    'loan_id' => $loan?->id,
+                    'nama_barang' => $tool?->nama_alat ?? '-',
+                    'peminjam' => $loan?->nama_peminjam ?? '-',
+                    'kelas' => $loan?->kelas ?? '-',
+                    'jumlah' => $loan?->jumlah_pinjam ?? 0,
+                    'tanggal_pinjam' => $loan?->tanggal_pinjam?->toDateString(),
+                    'batas_pengembalian' => $loan?->tanggal_kembali?->toDateString(),
+                    'tanggal_pengembalian' => $return->tanggal_pengembalian?->toDateString(),
+                    'status' => $return->status ?? 'menunggu',
+                    'status_barang' => $return->kondisi ?? 'baik',
+                    'lampiran_url' => $return->lampiran_path
+                        ? Storage::url($return->lampiran_path)
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return Inertia::render('admin/manajamen-peminjaman/riwayat-peminjaman/riwayat-peminjaman', [
+            'items' => $items,
+            'filters' => [
+                'search' => $search,
+                'status' => $statusFilter,
+            ],
         ]);
     }
 
@@ -348,7 +457,7 @@ class PeminjamanController extends Controller
             : 'baik';
     }
 
-    private function formatDateTimeString(?Carbon $date): ?string
+    private function formatDateTimeString(Carbon|CarbonImmutable|null $date): ?string
     {
         if (! $date) {
             return null;
@@ -383,5 +492,17 @@ class PeminjamanController extends Controller
                 'petugas' => 'Admin Susi',
             ],
         ];
+    }
+
+    private function resolveReturnStatusLabel(?string $status): ?string
+    {
+        return match ($status) {
+            'tepat waktu' => 'Tepat Waktu',
+            'telat' => 'Telat',
+            'rusak' => 'Rusak',
+            'hilang' => 'Hilang',
+            'menunggu' => 'Proses Pengecekan',
+            default => null,
+        };
     }
 }

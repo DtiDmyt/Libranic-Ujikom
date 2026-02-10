@@ -57,9 +57,9 @@ type PageProps = SharedData & {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Peminjaman', href: '/admin/peminjaman' },
-    { title: 'Data Peminjaman', href: '/admin/peminjaman' },
-    { title: 'Tambah Peminjaman', href: '/admin/peminjaman/data/tambah' },
+    { title: 'Manajemen Peminjaman', href: '/admin/data-peminjaman/peminjaman' },
+    { title: 'Data Peminjaman', href: '/admin/data-peminjaman/peminjaman' },
+    { title: 'Tambah Peminjaman', href: '/admin/data-peminjaman/peminjaman/tambah' },
 ];
 
 export default function AdminTambahPeminjamanPage() {
@@ -162,7 +162,7 @@ export default function AdminTambahPeminjamanPage() {
 
     const handleSubmit = () => {
         alertLoading('Sedang menyimpan data peminjaman...');
-        form.post('/admin/peminjaman/data', {
+        form.post('/admin/data-peminjaman/peminjaman', {
             preserveScroll: true,
             onSuccess: () => {
                 closeAlert();
@@ -201,7 +201,7 @@ export default function AdminTambahPeminjamanPage() {
                         </p>
                     </div>
                     <Link
-                        href="/admin/peminjaman"
+                        href="/admin/data-peminjaman/peminjaman"
                         className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                     >
                         <ArrowLeft className="h-4 w-4" /> Kembali

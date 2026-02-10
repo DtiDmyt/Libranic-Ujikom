@@ -8,8 +8,14 @@ import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: '/admin/dashboard' },
-    { title: 'Manajemen Peminjaman', href: '/admin/peminjaman' },
-    { title: 'Data Pengembalian', href: '/admin/peminjaman/pengembalian' },
+    {
+        title: 'Manajemen Peminjaman',
+        href: '/admin/data-peminjaman/peminjaman',
+    },
+    {
+        title: 'Data Pengembalian',
+        href: '/admin/data-pengembalian/pengembalian',
+    },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
@@ -106,13 +112,14 @@ export default function AdminDataPengembalianPage() {
         useState<ReturnStatus>('menunggu');
     const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
     const [bulkLoading, setBulkLoading] = useState(false);
+    const [detailReturn, setDetailReturn] = useState<ReturnRow | null>(null);
 
     const visitWithFilters = (overrides?: {
         search?: string;
         status?: ReturnStatus | 'semua';
     }) => {
         router.get(
-            '/admin/peminjaman/pengembalian',
+            '/admin/data-pengembalian/pengembalian',
             {
                 search: overrides?.search ?? searchTerm,
                 status: overrides?.status ?? statusFilter,
@@ -192,7 +199,7 @@ export default function AdminDataPengembalianPage() {
         setStatusLoadingId(item.pengembalian_id);
         try {
             await axios.patch(
-                `/admin/peminjaman/pengembalian/${item.pengembalian_id}/status`,
+                `/admin/data-pengembalian/pengembalian/${item.pengembalian_id}/status`,
                 { status: pendingStatus },
             );
             Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
@@ -221,7 +228,7 @@ export default function AdminDataPengembalianPage() {
             if (!result.isConfirmed) {
                 return;
             }
-            router.delete(`/admin/peminjaman/pengembalian/${id}`, {
+            router.delete(`/admin/data-pengembalian/pengembalian/${id}`, {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
@@ -254,7 +261,7 @@ export default function AdminDataPengembalianPage() {
             if (!result.isConfirmed) {
                 return;
             }
-            router.delete('/admin/peminjaman/pengembalian/bulk-delete', {
+            router.delete('/admin/data-pengembalian/pengembalian/bulk-delete', {
                 data: { ids: selected },
                 preserveState: true,
                 preserveScroll: true,
@@ -275,10 +282,13 @@ export default function AdminDataPengembalianPage() {
         }
         setBulkLoading(true);
         try {
-            await axios.patch('/admin/peminjaman/pengembalian/bulk-status', {
-                ids: selected,
-                status: 'tepat waktu',
-            });
+            await axios.patch(
+                '/admin/data-pengembalian/pengembalian/bulk-status',
+                {
+                    ids: selected,
+                    status: 'tepat waktu',
+                },
+            );
             setSelected([]);
             Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
             router.reload({
@@ -291,6 +301,8 @@ export default function AdminDataPengembalianPage() {
             setBulkLoading(false);
         }
     };
+
+    const closeDetailReturn = () => setDetailReturn(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -315,7 +327,7 @@ export default function AdminDataPengembalianPage() {
                     <div className="space-y-4 border-b border-[#E8E2DB] p-6">
                         <div className="flex flex-wrap items-center gap-3">
                             <Link
-                                href="/admin/peminjaman/data/tambah"
+                                href="/admin/data-peminjaman/peminjaman/tambah"
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#547792]"
                             >
                                 <Plus className="h-4 w-4" /> Tambah data
@@ -383,20 +395,6 @@ export default function AdminDataPengembalianPage() {
                                     <th className="px-6 py-3" />
                                     <th className="px-2 py-3" />
                                     <th className="px-4 py-3" />
-                                    <th className="px-4 py-3" />
-                                    <th className="px-4 py-3" colSpan={2}>
-                                        <input
-                                            type="text"
-                                            value={searchTerm}
-                                            onChange={(event) =>
-                                                setSearchTerm(
-                                                    event.target.value,
-                                                )
-                                            }
-                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
-                                            placeholder="Cari nama barang / peminjam"
-                                        />
-                                    </th>
                                     <th className="px-4 py-3">
                                         <select
                                             value={statusFilter}
@@ -421,6 +419,20 @@ export default function AdminDataPengembalianPage() {
                                             )}
                                         </select>
                                     </th>
+                                    <th className="px-4 py-3" colSpan={2}>
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(event) =>
+                                                setSearchTerm(
+                                                    event.target.value,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
+                                            placeholder="Cari nama barang / peminjam"
+                                        />
+                                    </th>
+                                    <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
                                 </tr>
@@ -455,17 +467,22 @@ export default function AdminDataPengembalianPage() {
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2 text-[#1A3263]">
                                                     {item.loan_id && (
-                                                        <Link
-                                                            href={`/admin/peminjaman/data/${item.loan_id}`}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setDetailReturn(
+                                                                    item,
+                                                                )
+                                                            }
                                                             title="Detail"
                                                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] transition hover:bg-[#EEF2FF]"
                                                         >
                                                             <Eye className="h-4 w-4" />
-                                                        </Link>
+                                                        </button>
                                                     )}
                                                     {item.loan_id && (
                                                         <Link
-                                                            href={`/admin/peminjaman/data/${item.loan_id}/edit`}
+                                                            href={`/admin/data-peminjaman/peminjaman/${item.loan_id}/edit`}
                                                             title="Edit"
                                                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] transition hover:bg-[#EEF3FF]"
                                                         >
@@ -623,6 +640,73 @@ export default function AdminDataPengembalianPage() {
                     </div>
                 </div>
             </div>
+            {detailReturn ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur"
+                        onClick={closeDetailReturn}
+                    />
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-[#E8E2DB] px-6 py-4">
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                    Detail Pengembalian
+                                </p>
+                                <h2 className="text-xl font-bold text-[#1A3263]">
+                                    {detailReturn.nama_barang}
+                                </h2>
+                                <p className="text-xs text-[#547792]">
+                                    {detailReturn.peminjam} · Kelas{' '}
+                                    {detailReturn.kelas}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeDetailReturn}
+                                className="text-sm font-semibold text-[#1A3263] underline"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                        <div className="space-y-4 p-6 text-sm text-[#1A3263]">
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <p>
+                                    <span className="font-semibold">
+                                        Jumlah:
+                                    </span>{' '}
+                                    {detailReturn.jumlah} unit
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Batas Pinjam:
+                                    </span>{' '}
+                                    {formatDate(detailReturn.batas_peminjaman)}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Dikembalikan:
+                                    </span>{' '}
+                                    {formatDate(
+                                        detailReturn.tanggal_dikembalikan,
+                                    )}
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold">Status:</span>
+                                {renderStatusBadge(detailReturn.status)}
+                            </div>
+                            <div className="bg-[#F8FAFC] px-4 py-3 text-xs font-semibold text-[#1A3263]">
+                                <p>
+                                    <span className="font-semibold">
+                                        Loan ID:
+                                    </span>{' '}
+                                    {detailReturn.loan_id ?? '-'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </AppLayout>
     );
 }

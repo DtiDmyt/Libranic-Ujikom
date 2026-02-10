@@ -31,9 +31,12 @@ type LoanRow = {
     tanggal_pinjam: string;
     tanggal_pengembalian: string;
     status?: string | null;
+    return_status?: ReturnStatus | null;
+    return_status_label?: string | null;
 };
 
 type LoanStatus = 'menunggu' | 'disetujui' | 'ditolak';
+type ReturnStatus = 'menunggu' | 'tepat waktu' | 'telat' | 'rusak' | 'hilang';
 
 type PageProps = SharedData & {
     items: LoanRow[];
@@ -50,8 +53,11 @@ type PageProps = SharedData & {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Peminjaman', href: '/admin/peminjaman' },
-    { title: 'Data Peminjaman', href: '/admin/peminjaman' },
+    {
+        title: 'Manajemen Peminjaman',
+        href: '/admin/data-peminjaman/peminjaman',
+    },
+    { title: 'Data Peminjaman', href: '/admin/data-peminjaman/peminjaman' },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
@@ -102,6 +108,44 @@ const statusOptions: { value: LoanStatus; label: string }[] = [
     { value: 'ditolak', label: statusLabels.ditolak },
 ];
 
+const statusFilterOptions = [
+    { value: 'semua', label: 'Semua Status' },
+    { value: 'menunggu', label: 'Proses Pengecekan' },
+    { value: 'disetujui', label: 'Disetujui' },
+    { value: 'ditolak', label: 'Ditolak' },
+];
+
+const returnStatusConfig: Record<
+    ReturnStatus,
+    { label: string; palette: string; dot: string }
+> = {
+    menunggu: {
+        label: 'Proses Pengecekan',
+        palette: 'bg-[#FEF3C7] text-[#C2410C]',
+        dot: 'bg-[#C2410C]',
+    },
+    'tepat waktu': {
+        label: 'Tepat Waktu',
+        palette: 'bg-[#DCFCE7] text-[#065F46]',
+        dot: 'bg-[#16A34A]',
+    },
+    telat: {
+        label: 'Telat',
+        palette: 'bg-[#FEE2E2] text-[#991B1B]',
+        dot: 'bg-[#DC2626]',
+    },
+    rusak: {
+        label: 'Rusak',
+        palette: 'bg-[#FEF3C7] text-[#C2410C]',
+        dot: 'bg-[#C2410C]',
+    },
+    hilang: {
+        label: 'Hilang',
+        palette: 'bg-[#FEE2E2] text-[#991B1B]',
+        dot: 'bg-[#DC2626]',
+    },
+};
+
 const normalizeEditableStatus = (status?: string | null): LoanStatus => {
     const normalized = normalizeStatusValue(status);
     if (normalized === 'disetujui') {
@@ -118,9 +162,9 @@ const formatStatusLabel = (status?: string | null): string => {
     return statusLabels[normalized] ?? 'Menunggu Persetujuan';
 };
 
-const renderStatusBadge = (status?: string | null) => {
+const renderWorkflowStatusBadge = (status?: string | null) => {
     const normalized = normalizeStatusValue(status);
-    const palette = statusStyles[normalized] ?? 'bg-[#E0E7FF] text-[#1E3A8A]';
+    const palette = statusStyles[normalized] ?? 'bg-[#FEF3C7] text-[#C2410C]';
 
     return (
         <span
@@ -140,6 +184,18 @@ const renderStatusBadge = (status?: string | null) => {
     );
 };
 
+const renderReturnStatusBadge = (status: ReturnStatus) => {
+    const metadata = returnStatusConfig[status] ?? returnStatusConfig.menunggu;
+    return (
+        <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${metadata.palette}`}
+        >
+            <span className={`h-2.5 w-2.5 rounded-full ${metadata.dot}`} />
+            {metadata.label}
+        </span>
+    );
+};
+
 export default function AdminDataPeminjamanPage() {
     const { items, filters, borrowers, flash } = usePage<PageProps>().props;
 
@@ -153,6 +209,10 @@ export default function AdminDataPeminjamanPage() {
     const [rejectionTarget, setRejectionTarget] = useState<LoanRow | null>(
         null,
     );
+    const [detailLoan, setDetailLoan] = useState<LoanRow | null>(null);
+    const [statusFilter, setStatusFilter] = useState<'semua' | LoanStatus>(
+        'semua',
+    );
 
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
@@ -162,6 +222,7 @@ export default function AdminDataPeminjamanPage() {
         setLocalItems(items);
         setEditingStatusId(null);
         setStatusLoadingId(null);
+        setStatusFilter('semua');
     }, [items, filters.search]);
 
     useEffect(() => {
@@ -202,7 +263,7 @@ export default function AdminDataPeminjamanPage() {
             search: overrides?.search ?? searchTerm,
         };
 
-        router.get('/admin/peminjaman/data', query, {
+        router.get('/admin/data-peminjaman/peminjaman', query, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -217,16 +278,37 @@ export default function AdminDataPeminjamanPage() {
         );
     };
 
-    const toggleSelectAll = () => {
-        setSelected((prev) =>
-            prev.length === localItems.length
-                ? []
-                : localItems.map((item) => item.id),
+    const visibleItems = useMemo(() => {
+        if (statusFilter === 'semua') {
+            return localItems;
+        }
+
+        return localItems.filter(
+            (item) => normalizeStatusValue(item.status) === statusFilter,
         );
+    }, [localItems, statusFilter]);
+
+    const toggleSelectAll = () => {
+        if (
+            visibleItems.length > 0 &&
+            visibleItems.every((item) => selected.includes(item.id))
+        ) {
+            setSelected((prev) =>
+                prev.filter(
+                    (id) => !visibleItems.some((item) => item.id === id),
+                ),
+            );
+            return;
+        }
+
+        setSelected((prev) => [
+            ...new Set([...prev, ...visibleItems.map((item) => item.id)]),
+        ]);
     };
 
     const allSelected =
-        localItems.length > 0 && selected.length === localItems.length;
+        visibleItems.length > 0 &&
+        visibleItems.every((item) => selected.includes(item.id));
     const hasSelected = selected.length > 0;
 
     const handleBulkDelete = () => {
@@ -245,19 +327,22 @@ export default function AdminDataPeminjamanPage() {
             if (!result.isConfirmed) return;
 
             alertLoading('Sedang menghapus data terpilih...');
-            router.delete('/admin/peminjaman/data/bulk-delete', {
-                data: { ids: selected },
-                preserveScroll: true,
-                onSuccess: () => {
-                    setSelected([]);
-                    closeAlert();
-                    alertSuccess('Data terpilih berhasil dihapus.');
+            router.delete(
+                '/admin/data-peminjaman/peminjaman/bulk-delete',
+                { ids: selected },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setSelected([]);
+                        closeAlert();
+                        alertSuccess('Data terpilih berhasil dihapus.');
+                    },
+                    onError: () => {
+                        closeAlert();
+                        alertError('Gagal menghapus data terpilih.');
+                    },
                 },
-                onError: () => {
-                    closeAlert();
-                    alertError('Gagal menghapus data terpilih.');
-                },
-            });
+            );
         });
     };
 
@@ -266,7 +351,7 @@ export default function AdminDataPeminjamanPage() {
 
         alertLoading('Sedang memperbarui status peminjaman...');
         router.patch(
-            '/admin/peminjaman/data/bulk-selesai',
+            '/admin/data-peminjaman/peminjaman/bulk-selesai',
             { ids: selected },
             {
                 preserveScroll: true,
@@ -297,18 +382,24 @@ export default function AdminDataPeminjamanPage() {
             if (!result.isConfirmed) return;
 
             alertLoading('Sedang menghapus data...');
-            router.delete(`/admin/peminjaman/data/${id}`, {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setSelected((prev) => prev.filter((item) => item !== id));
-                    closeAlert();
-                    alertSuccess('Data peminjaman berhasil dihapus.');
+            router.delete(
+                `/admin/data-peminjaman/peminjaman/${id}`,
+                {},
+                {
+                    preserveScroll: true,
+                    onSuccess: () => {
+                        setSelected((prev) =>
+                            prev.filter((item) => item !== id),
+                        );
+                        closeAlert();
+                        alertSuccess('Data peminjaman berhasil dihapus.');
+                    },
+                    onError: () => {
+                        closeAlert();
+                        alertError('Gagal menghapus data.');
+                    },
                 },
-                onError: () => {
-                    closeAlert();
-                    alertError('Gagal menghapus data.');
-                },
-            });
+            );
         });
     };
 
@@ -344,7 +435,10 @@ export default function AdminDataPeminjamanPage() {
         setStatusLoadingId(id);
         alertLoading(loadingMessage);
         try {
-            await axios.patch(`/admin/peminjaman/data/${id}/status`, payload);
+            await axios.patch(
+                `/admin/data-peminjaman/peminjaman/${id}/status`,
+                payload,
+            );
             setLocalItems((prev) =>
                 prev.map((item) =>
                     item.id === id
@@ -416,6 +510,8 @@ export default function AdminDataPeminjamanPage() {
         proceed();
     };
 
+    const closeDetailLoan = () => setDetailLoan(null);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Data Peminjaman" />
@@ -439,7 +535,7 @@ export default function AdminDataPeminjamanPage() {
                     <div className="space-y-4 border-b border-[#E8E2DB] p-6">
                         <div className="flex flex-wrap items-center gap-3">
                             <Link
-                                href="/admin/peminjaman/data/tambah"
+                                href="/admin/data-peminjaman/peminjaman/tambah"
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#547792]"
                             >
                                 <Plus className="h-4 w-4" /> Tambah data
@@ -507,7 +603,30 @@ export default function AdminDataPeminjamanPage() {
                                     <th className="px-6 py-3" />
                                     <th className="px-2 py-3" />
                                     <th className="px-4 py-3" />
-                                    <th className="px-4 py-3" />
+                                    <th className="px-4 py-3">
+                                        <select
+                                            value={statusFilter}
+                                            onChange={(event) =>
+                                                setStatusFilter(
+                                                    event.target.value as
+                                                        | 'semua'
+                                                        | LoanStatus,
+                                                )
+                                            }
+                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-xs font-semibold text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
+                                        >
+                                            {statusFilterOptions.map(
+                                                (option) => (
+                                                    <option
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </th>
                                     <th className="px-4 py-3" colSpan={2}>
                                         <input
                                             type="text"
@@ -527,7 +646,7 @@ export default function AdminDataPeminjamanPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {localItems.map((item, index) => {
+                                {visibleItems.map((item, index) => {
                                     const isSelected = selected.includes(
                                         item.id,
                                     );
@@ -553,16 +672,19 @@ export default function AdminDataPeminjamanPage() {
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2 text-[#1A3263]">
-                                                    <Link
-                                                        href={`/admin/peminjaman/data/${item.id}`}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setDetailLoan(item)
+                                                        }
                                                         title="Detail"
                                                         aria-label="Detail"
                                                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] transition hover:bg-[#EEF2FF]"
                                                     >
                                                         <Eye className="h-4 w-4" />
-                                                    </Link>
+                                                    </button>
                                                     <Link
-                                                        href={`/admin/peminjaman/data/${item.id}/edit`}
+                                                        href={`/admin/data-peminjaman/peminjaman/${item.id}/edit`}
                                                         title="Edit"
                                                         aria-label="Edit"
                                                         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] transition hover:bg-[#EEF3FF]"
@@ -669,7 +791,7 @@ export default function AdminDataPeminjamanPage() {
                                                         className="text-left"
                                                         title="Ubah status peminjaman"
                                                     >
-                                                        {renderStatusBadge(
+                                                        {renderWorkflowStatusBadge(
                                                             item.status,
                                                         )}
                                                     </button>
@@ -706,7 +828,7 @@ export default function AdminDataPeminjamanPage() {
                                         </tr>
                                     );
                                 })}
-                                {localItems.length === 0 ? (
+                                {visibleItems.length === 0 ? (
                                     <tr>
                                         <td
                                             colSpan={9}
@@ -721,7 +843,7 @@ export default function AdminDataPeminjamanPage() {
                     </div>
 
                     <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {localItems.length} data
+                        Menampilkan {visibleItems.length} data
                     </div>
                 </div>
             </div>
@@ -733,6 +855,87 @@ export default function AdminDataPeminjamanPage() {
                 onClose={cancelRejectModal}
                 onSubmit={handleRejectSubmit}
             />
+            {detailLoan ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                    <div
+                        className="absolute inset-0 bg-black/40 backdrop-blur"
+                        onClick={closeDetailLoan}
+                    />
+                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-[#E8E2DB] px-6 py-4">
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                    Detail Peminjaman
+                                </p>
+                                <h2 className="text-xl font-bold text-[#1A3263]">
+                                    {detailLoan.nama_barang}
+                                </h2>
+                                <p className="text-xs text-[#547792]">
+                                    {detailLoan.peminjam} · Kelas{' '}
+                                    {detailLoan.kelas}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeDetailLoan}
+                                className="text-sm font-semibold text-[#1A3263] underline"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                        <div className="space-y-4 p-6 text-sm text-[#1A3263]">
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <p>
+                                    <span className="font-semibold">
+                                        Jumlah:
+                                    </span>{' '}
+                                    {detailLoan.jumlah} unit
+                                </p>
+                                <div className="col-span-2">
+                                    <span className="font-semibold">
+                                        Status:
+                                    </span>{' '}
+                                    {renderWorkflowStatusBadge(
+                                        detailLoan.status,
+                                    )}
+                                </div>
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <p>
+                                    <span className="font-semibold">
+                                        Pinjam:
+                                    </span>{' '}
+                                    {formatDate(detailLoan.tanggal_pinjam)}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Kembali:
+                                    </span>{' '}
+                                    {formatDate(
+                                        detailLoan.tanggal_pengembalian,
+                                    )}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">
+                                        Return:
+                                    </span>{' '}
+                                    {detailLoan.return_status
+                                        ? renderReturnStatusBadge(
+                                              detailLoan.return_status,
+                                          )
+                                        : '-'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="font-semibold">Kondisi Barang</p>
+                                <p className="mt-1 rounded-2xl bg-[#F8FAFC] px-4 py-3 text-xs font-semibold text-[#1A3263]">
+                                    {detailLoan.kondisi_barang}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </AppLayout>
     );
 }
