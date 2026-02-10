@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\AdministratorController;
 use App\Http\Controllers\Admin\DaftarBarangController;
 use App\Http\Controllers\Admin\KategoriAlatController;
+use App\Http\Controllers\Admin\PengembalianController as AdminPengembalianController;
 use App\Http\Controllers\Admin\PeminjamanController as AdminPeminjamanController;
 use App\Http\Controllers\Pengguna\DaftarAlatController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
@@ -99,23 +100,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::patch('data/{loan}', [AdminPeminjamanController::class, 'update'])->name('data.update');
             Route::get('data/{loan}/edit', [AdminPeminjamanController::class, 'edit'])->name('data.edit');
             Route::get('data/{loan}', [AdminPeminjamanController::class, 'show'])->name('data.show');
-            Route::get('pengembalian', [AdminPeminjamanController::class, 'pengembalian'])
+            Route::get('pengembalian', [AdminPengembalianController::class, 'index'])
                 ->name('pengembalian.index');
             Route::patch('pengembalian/{pengembalian}/status', [
-                AdminPeminjamanController::class,
-                'updateReturnStatus',
+                AdminPengembalianController::class,
+                'updateStatus',
             ])->name('pengembalian.status');
             Route::patch('pengembalian/bulk-status', [
-                AdminPeminjamanController::class,
-                'bulkUpdateReturnStatus',
+                AdminPengembalianController::class,
+                'bulkUpdateStatus',
             ])->name('pengembalian.bulk-status');
             Route::delete('pengembalian/{pengembalian}', [
-                AdminPeminjamanController::class,
-                'destroyReturn',
+                AdminPengembalianController::class,
+                'destroy',
             ])->name('pengembalian.destroy');
             Route::delete('pengembalian/bulk-delete', [
-                AdminPeminjamanController::class,
-                'bulkDeleteReturns',
+                AdminPengembalianController::class,
+                'bulkDestroy',
             ])->name('pengembalian.bulk-delete');
             Route::patch('data/{loan}/status', [AdminPeminjamanController::class, 'updateStatus'])->name('data.status');
         });

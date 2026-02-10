@@ -152,9 +152,7 @@ class PeminjamanController extends Controller
 
         $items = $loans->map(function (Peminjaman $loan) {
             $pengembalian = $loan->pengembalian;
-            $returnStatus = $loan->status === 'ditolak'
-                ? 'ditolak'
-                : ($pengembalian?->status ?? $this->determineReturnStatus($loan, $pengembalian));
+            $returnStatus = $this->resolveReturnStatus($loan, $pengembalian);
             $lateDays = $this->calculateLateDays($loan, $pengembalian);
             $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
 
@@ -193,7 +191,7 @@ class PeminjamanController extends Controller
 
         $loan->loadMissing(['alat', 'pengembalian']);
         $pengembalian = $loan->pengembalian;
-        $returnStatus = $this->determineReturnStatus($loan, $pengembalian);
+        $returnStatus = $this->resolveReturnStatus($loan, $pengembalian);
         $lateDays = $this->calculateLateDays($loan, $pengembalian);
         $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
 
@@ -253,26 +251,13 @@ class PeminjamanController extends Controller
         ]);
     }
 
-    private function determineReturnStatus(Peminjaman $loan, ?Pengembalian $pengembalian): string
+    private function resolveReturnStatus(Peminjaman $loan, ?Pengembalian $pengembalian): string
     {
-        if (! $pengembalian || ! $pengembalian->tanggal_pengembalian) {
-            return 'menunggu';
+        if ($loan->status === 'ditolak') {
+            return 'ditolak';
         }
 
-        $condition = strtolower($pengembalian->kondisi ?? '');
-        if ($condition === 'rusak') {
-            return 'rusak';
-        }
-
-        if ($condition === 'hilang') {
-            return 'hilang';
-        }
-
-        if ($loan->tanggal_kembali && $pengembalian->tanggal_pengembalian->greaterThan($loan->tanggal_kembali)) {
-            return 'telat';
-        }
-
-        return 'tepat waktu';
+        return $pengembalian?->status ?? 'menunggu';
     }
 
     private function calculateLateDays(Peminjaman $loan, ?Pengembalian $pengembalian): int
@@ -288,12 +273,13 @@ class PeminjamanController extends Controller
     private function statusLabel(string $status): string
     {
         return match ($status) {
+            'menunggu' => 'Proses Pengecekan',
             'tepat waktu' => 'Tepat Waktu',
-            'terlambat' => 'Terlambat',
+            'telat' => 'Telat',
             'rusak' => 'Rusak',
             'hilang' => 'Hilang',
             'ditolak' => 'Ditolak',
-            default => 'Menunggu Pengembalian',
+            default => 'Proses Pengecekan',
         };
     }
 }
