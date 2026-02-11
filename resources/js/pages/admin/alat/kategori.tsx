@@ -1,6 +1,7 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Plus, PencilLine, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
 import type { BreadcrumbItem } from '@/types';
@@ -105,19 +106,34 @@ export default function AdminKategoriAlatPage() {
     const handleBulkDelete = () => {
         if (!hasSelected) return;
 
-        alertLoading('Sedang menghapus kategori terpilih...');
-        router.delete('/admin/alat/kategori/bulk-delete', {
-            data: { ids: selected },
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelected([]);
-                closeAlert();
-                alertSuccess('Kategori terpilih berhasil dihapus.');
-            },
-            onError: () => {
-                closeAlert();
-                alertError('Gagal menghapus kategori. Silakan coba lagi.');
-            },
+        Swal.fire({
+            title: 'Hapus Kategori',
+            text: 'Yakin ingin menghapus kategori terpilih?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Hapus',
+            cancelButtonText: 'Batal',
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            alertLoading('Sedang menghapus kategori terpilih...');
+            router.delete('/admin/alat/kategori/bulk-delete', {
+                data: { ids: selected },
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected([]);
+                    closeAlert();
+                    alertSuccess('Kategori terpilih berhasil dihapus.');
+                },
+                onError: () => {
+                    closeAlert();
+                    alertError('Gagal menghapus kategori. Silakan coba lagi.');
+                },
+            });
         });
     };
 

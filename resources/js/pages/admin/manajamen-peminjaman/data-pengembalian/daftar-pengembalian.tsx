@@ -4,6 +4,7 @@ import { CheckCircle, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
+import adminRoutes from '@/routes/admin';
 import type { BreadcrumbItem, SharedData } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -327,10 +328,13 @@ export default function AdminDataPengembalianPage() {
                     <div className="space-y-4 border-b border-[#E8E2DB] p-6">
                         <div className="flex flex-wrap items-center gap-3">
                             <Link
-                                href="/admin/data-peminjaman/peminjaman/tambah"
+                                href={
+                                    adminRoutes.dataPengembalian.pengembalian.tambah()
+                                        .url
+                                }
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#547792]"
                             >
-                                <Plus className="h-4 w-4" /> Tambah data
+                                <Plus className="h-4 w-4" /> Tambah Pengembalian
                             </Link>
                             <button
                                 type="button"
@@ -480,9 +484,16 @@ export default function AdminDataPengembalianPage() {
                                                             <Eye className="h-4 w-4" />
                                                         </button>
                                                     )}
-                                                    {item.loan_id && (
+                                                    {item.pengembalian_id && (
                                                         <Link
-                                                            href={`/admin/data-peminjaman/peminjaman/${item.loan_id}/edit`}
+                                                            href={
+                                                                adminRoutes.dataPengembalian.pengembalian.edit(
+                                                                    {
+                                                                        pengembalian:
+                                                                            item.pengembalian_id,
+                                                                    },
+                                                                ).url
+                                                            }
                                                             title="Edit"
                                                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] transition hover:bg-[#EEF3FF]"
                                                         >

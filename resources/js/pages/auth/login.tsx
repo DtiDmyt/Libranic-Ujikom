@@ -10,6 +10,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
+import { useCsrfToken } from '@/hooks/use-csrf-token';
 
 type Props = {
     status?: string;
@@ -22,6 +23,15 @@ export default function Login({
     canResetPassword,
     canRegister,
 }: Props) {
+    const csrfToken =
+        typeof document !== 'undefined'
+            ? ((
+                  document.querySelector(
+                      'meta[name="csrf-token"]',
+                  ) as HTMLMetaElement | null
+              )?.content ?? '')
+            : '';
+
     return (
         <AuthLayout
             title="Masuk ke akun Anda"
@@ -37,6 +47,12 @@ export default function Login({
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6">
+                            <input
+                                type="hidden"
+                                name="_token"
+                                value={csrfToken}
+                            />
+
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Alamat Email</Label>
                                 <Input
@@ -55,15 +71,6 @@ export default function Login({
                             <div className="grid gap-2">
                                 <div className="flex items-center">
                                     <Label htmlFor="password">Kata Sandi</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Lupa kata sandi?
-                                        </TextLink>
-                                    )}
                                 </div>
                                 <Input
                                     id="password"

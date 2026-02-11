@@ -4,13 +4,132 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pengembalian;
+use App\Models\Peminjaman;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PengembalianController extends Controller
 {
+    public function create(): Response
+    {
+        return Inertia::render('admin/manajamen-peminjaman/data-pengembalian/tambah-pengembalian', [
+            'loans' => $this->availableLoansForReturn(),
+            'defaultDate' => Carbon::today()->toDateString(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'peminjaman_id' => ['required', 'exists:peminjaman,id'],
+            'tanggal_pengembalian' => ['required', 'date'],
+            'kondisi' => ['required', 'in:baik,rusak,hilang'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+            'lampiran' => ['nullable', 'image', 'max:2048'],
+        ]);
+
+        $loan = Peminjaman::with('pengembalian')->findOrFail($validated['peminjaman_id']);
+
+        if ($loan->pengembalian()->exists()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Pengembalian untuk peminjaman ini sudah tercatat.');
+        }
+
+        if ($loan->status === 'ditolak') {
+            return redirect()
+                ->back()
+                ->with('error', 'Peminjaman yang ditolak tidak bisa dikembalikan.');
+        }
+
+        $lampiranPath = null;
+        if ($request->hasFile('lampiran')) {
+            $lampiranPath = $request->file('lampiran')->store('pengembalian', 'public');
+        }
+
+        Pengembalian::create([
+            'peminjaman_id' => $loan->id,
+            'user_id' => $request->user()?->id,
+            'tanggal_pengembalian' => $validated['tanggal_pengembalian'],
+            'kondisi' => $validated['kondisi'],
+            'catatan' => $validated['catatan'] ?? null,
+            'lampiran_path' => $lampiranPath,
+            'status' => 'menunggu',
+        ]);
+
+        $loan->status = 'dikembalikan';
+        $loan->save();
+
+        return redirect()
+            ->route('admin.data-pengembalian.pengembalian.index')
+            ->with('success', 'Pengembalian berhasil dicatat.');
+    }
+
+    public function edit(Pengembalian $pengembalian): Response
+    {
+        $pengembalian->loadMissing('peminjaman.alat');
+
+        $loan = $pengembalian->peminjaman;
+
+        return Inertia::render('admin/manajamen-peminjaman/data-pengembalian/edit-pengembalian', [
+            'loan' => [
+                'id' => $loan?->id,
+                'nama_peminjam' => $loan?->nama_peminjam ?? '-',
+                'kelas' => $loan?->kelas,
+                'nis_nip' => $loan?->nis_nip,
+                'alat_nama' => $loan->alat?->nama_alat ?? '-',
+                'kode_alat' => $loan->alat?->kode_alat ?? '-',
+                'ruangan' => $loan->alat?->ruangan ?? '-',
+                'jumlah_pinjam' => $loan?->jumlah_pinjam,
+                'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
+                'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
+            ],
+            'pengembalian' => [
+                'id' => $pengembalian->id,
+                'tanggal_pengembalian' => $pengembalian->tanggal_pengembalian?->toDateString(),
+                'kondisi' => $pengembalian->kondisi ?? 'baik',
+                'catatan' => $pengembalian->catatan,
+                'status' => $pengembalian->status,
+                'lampiran_url' => $pengembalian->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
+                'lampiran_name' => $pengembalian->lampiran_path ? basename($pengembalian->lampiran_path) : null,
+            ],
+        ]);
+    }
+
+    public function update(Request $request, Pengembalian $pengembalian): RedirectResponse
+    {
+        $validated = $request->validate([
+            'tanggal_pengembalian' => ['required', 'date'],
+            'kondisi' => ['required', 'in:baik,rusak,hilang'],
+            'catatan' => ['nullable', 'string', 'max:1000'],
+            'lampiran' => ['nullable', 'image', 'max:2048'],
+        ]);
+
+        $lampiranPath = $pengembalian->lampiran_path;
+        if ($request->hasFile('lampiran')) {
+            if ($lampiranPath) {
+                Storage::disk('public')->delete($lampiranPath);
+            }
+            $lampiranPath = $request->file('lampiran')->store('pengembalian', 'public');
+        }
+
+        $pengembalian->update([
+            'tanggal_pengembalian' => $validated['tanggal_pengembalian'],
+            'kondisi' => $validated['kondisi'],
+            'catatan' => $validated['catatan'] ?? null,
+            'lampiran_path' => $lampiranPath,
+        ]);
+
+        return redirect()
+            ->route('admin.data-pengembalian.pengembalian.index')
+            ->with('success', 'Data pengembalian berhasil diperbarui.');
+    }
+
     public function index(Request $request): Response
     {
         $search = $request->string('search')->toString();
@@ -60,6 +179,35 @@ class PengembalianController extends Controller
         ]);
     }
 
+    private function availableLoansForReturn(): array
+    {
+        $query = Peminjaman::with(['alat', 'user'])
+            ->whereDoesntHave('pengembalian')
+            ->where(function ($builder) {
+                $builder->whereNull('status')
+                    ->orWhereNotIn('status', ['ditolak', 'selesai']);
+            })
+            ->orderByDesc('tanggal_pinjam');
+
+        return $query->get()
+            ->map(function (Peminjaman $loan) {
+                return [
+                    'id' => $loan->id,
+                    'nama_peminjam' => $loan->nama_peminjam ?? $loan->user?->name ?? '-',
+                    'kelas' => $loan->kelas,
+                    'nis_nip' => $loan->nis_nip,
+                    'alat_nama' => $loan->alat?->nama_alat ?? '-',
+                    'kode_alat' => $loan->alat?->kode_alat ?? '-',
+                    'ruangan' => $loan->alat?->ruangan ?? '-',
+                    'jumlah_pinjam' => $loan->jumlah_pinjam,
+                    'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
+                    'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
     public function updateStatus(Request $request, Pengembalian $pengembalian): JsonResponse
     {
         $data = $request->validate([
@@ -87,14 +235,16 @@ class PengembalianController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-    public function destroy(Pengembalian $pengembalian): JsonResponse
+    public function destroy(Pengembalian $pengembalian): RedirectResponse
     {
         $pengembalian->delete();
 
-        return response()->json(['status' => 'ok']);
+        return redirect()
+            ->route('admin.data-pengembalian.pengembalian.index')
+            ->with('success', 'Data pengembalian berhasil dihapus.');
     }
 
-    public function bulkDestroy(Request $request): JsonResponse
+    public function bulkDestroy(Request $request): RedirectResponse
     {
         $data = $request->validate([
             'ids' => ['required', 'array'],
@@ -103,6 +253,8 @@ class PengembalianController extends Controller
 
         Pengembalian::whereIn('id', $data['ids'])->delete();
 
-        return response()->json(['status' => 'ok']);
+        return redirect()
+            ->route('admin.data-pengembalian.pengembalian.index')
+            ->with('success', 'Data pengembalian terpilih berhasil dihapus.');
     }
 }

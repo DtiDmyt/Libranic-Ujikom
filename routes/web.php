@@ -102,6 +102,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::prefix('data-pengembalian')->name('data-pengembalian.')->group(function () {
             Route::get('pengembalian', [AdminPengembalianController::class, 'index'])->name('pengembalian.index');
+            Route::get('pengembalian/tambah', [AdminPengembalianController::class, 'create'])->name('pengembalian.tambah');
+            Route::post('pengembalian', [AdminPengembalianController::class, 'store'])->name('pengembalian.store');
+            Route::get('pengembalian/{pengembalian}/edit', [AdminPengembalianController::class, 'edit'])->name('pengembalian.edit');
+            Route::patch('pengembalian/{pengembalian}', [AdminPengembalianController::class, 'update'])->name('pengembalian.update');
             Route::patch('pengembalian/{pengembalian}/status', [
                 AdminPengembalianController::class,
                 'updateStatus',

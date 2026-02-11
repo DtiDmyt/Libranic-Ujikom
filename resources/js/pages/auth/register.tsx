@@ -10,6 +10,7 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 import { cn } from '@/lib/utils';
+import { useCsrfToken } from '@/hooks/use-csrf-token';
 
 const selectClasses = cn(
     'flex h-11 w-full appearance-none rounded-md border border-input bg-[#E8E2DB] px-3 py-2 text-sm text-[#1A3263]',
@@ -22,6 +23,7 @@ const filledInputClasses = 'bg-[#E8E2DB] focus:bg-[#E8E2DB]';
 export default function Register() {
     const [role, setRole] = useState('');
     const isMurid = role === 'murid';
+    const csrfToken = useCsrfToken();
 
     return (
         <AuthLayout
@@ -39,6 +41,12 @@ export default function Register() {
                     return (
                         <>
                             <div className="grid gap-5">
+                                <input
+                                    type="hidden"
+                                    name="_token"
+                                    value={csrfToken}
+                                />
+
                                 <input
                                     type="hidden"
                                     name="account_role"
