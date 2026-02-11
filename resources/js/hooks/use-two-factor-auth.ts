@@ -24,7 +24,7 @@ const fetchJson = async <T>(url: string): Promise<T> => {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
+        throw new Error(`Gagal mengambil data: ${response.status}`);
     }
 
     return response.json();
@@ -46,7 +46,7 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             const { svg } = await fetchJson<TwoFactorSetupData>(qrCode.url());
             setQrCodeSvg(svg);
         } catch {
-            setErrors((prev) => [...prev, 'Failed to fetch QR code']);
+            setErrors((prev) => [...prev, 'Gagal mengambil kode QR']);
             setQrCodeSvg(null);
         }
     }, []);
@@ -58,7 +58,7 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             );
             setManualSetupKey(key);
         } catch {
-            setErrors((prev) => [...prev, 'Failed to fetch a setup key']);
+            setErrors((prev) => [...prev, 'Gagal mengambil kunci setup']);
             setManualSetupKey(null);
         }
     }, []);
@@ -79,7 +79,7 @@ export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
             const codes = await fetchJson<string[]>(recoveryCodes.url());
             setRecoveryCodesList(codes);
         } catch {
-            setErrors((prev) => [...prev, 'Failed to fetch recovery codes']);
+            setErrors((prev) => [...prev, 'Gagal mengambil kode pemulihan']);
             setRecoveryCodesList([]);
         }
     }, [clearErrors]);

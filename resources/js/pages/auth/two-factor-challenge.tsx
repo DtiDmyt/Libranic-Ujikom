@@ -24,18 +24,18 @@ export default function TwoFactorChallenge() {
     }>(() => {
         if (showRecoveryInput) {
             return {
-                title: 'Recovery Code',
+                title: 'Kode Pemulihan',
                 description:
-                    'Please confirm access to your account by entering one of your emergency recovery codes.',
-                toggleText: 'login using an authentication code',
+                    'Mohon konfirmasi akses ke akun Anda dengan memasukkan salah satu kode pemulihan darurat.',
+                toggleText: 'masuk dengan kode autentikasi',
             };
         }
 
         return {
-            title: 'Authentication Code',
+            title: 'Kode Autentikasi',
             description:
-                'Enter the authentication code provided by your authenticator application.',
-            toggleText: 'login using a recovery code',
+                'Masukkan kode autentikasi yang diberikan oleh aplikasi autentikator Anda.',
+            toggleText: 'masuk menggunakan kode pemulihan',
         };
     }, [showRecoveryInput]);
 
@@ -66,7 +66,7 @@ export default function TwoFactorChallenge() {
                                     <Input
                                         name="recovery_code"
                                         type="text"
-                                        placeholder="Enter recovery code"
+                                        placeholder="Masukkan kode pemulihan"
                                         autoFocus={showRecoveryInput}
                                         required
                                     />
