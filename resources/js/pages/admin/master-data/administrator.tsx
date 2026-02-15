@@ -519,44 +519,50 @@ export default function AdminAdministratorPage() {
                                             <td className="px-2 py-4 font-semibold text-[#1A3263]">
                                                 {from + index}
                                             </td>
-                                            <td className="flex flex-wrap items-center gap-2 px-4 py-4 text-[#1A3263]">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleShowDetail(item)
-                                                    }
-                                                    title="Detail"
-                                                    aria-label="Detail"
-                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] text-[#1A3263] transition hover:bg-[#EEF2FF]"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
-                                                <Link
-                                                    href={`/admin/master-data/administrator/${item.id}/edit`}
-                                                    title="Edit"
-                                                    aria-label="Edit"
-                                                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] text-[#1A3263] transition hover:bg-[#EEF3FF]"
-                                                >
-                                                    <PencilLine className="h-4 w-4" />
-                                                </Link>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleSingleDelete(
-                                                            item.id,
-                                                        )
-                                                    }
-                                                    title="Hapus"
-                                                    aria-label="Hapus"
-                                                    disabled={!item.can_manage}
-                                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
-                                                        item.can_manage
-                                                            ? 'border-[#FEE2E2] text-[#B91C1C] hover:bg-[#FEE2E2]'
-                                                            : 'cursor-not-allowed border-slate-100 text-slate-300'
-                                                    }`}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleShowDetail(
+                                                                item,
+                                                            )
+                                                        }
+                                                        title="Detail"
+                                                        aria-label="Detail"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] text-[#1A3263] transition hover:bg-[#EEF2FF]"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </button>
+                                                    <Link
+                                                        href={`/admin/master-data/administrator/${item.id}/edit`}
+                                                        title="Edit"
+                                                        aria-label="Edit"
+                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] text-[#1A3263] transition hover:bg-[#EEF3FF]"
+                                                    >
+                                                        <PencilLine className="h-4 w-4" />
+                                                    </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            handleSingleDelete(
+                                                                item.id,
+                                                            )
+                                                        }
+                                                        title="Hapus"
+                                                        aria-label="Hapus"
+                                                        disabled={
+                                                            !item.can_manage
+                                                        }
+                                                        className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition ${
+                                                            item.can_manage
+                                                                ? 'border-[#FEE2E2] text-[#B91C1C] hover:bg-[#FEE2E2]'
+                                                                : 'cursor-not-allowed border-slate-100 text-slate-300'
+                                                        }`}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                             <td className="px-4 py-4 text-[#1A3263]">
                                                 <p className="font-semibold">

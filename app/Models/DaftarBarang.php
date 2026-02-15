@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -81,8 +82,18 @@ class DaftarBarang extends Model
         $this->increment('stok', $amount);
     }
 
-    public function getGambarUrlAttribute(): ?string
+    protected function gambarUrl(): Attribute
     {
-        return $this->gambar_path ? Storage::disk('public')->url($this->gambar_path) : null;
+        return Attribute::make(
+            get: function (mixed $value, array $attributes): ?string {
+                $path = $attributes['gambar_path'] ?? null;
+
+                if ($path === null || $path === '') {
+                    return null;
+                }
+
+                return Storage::disk('public')->url((string) $path);
+            },
+        );
     }
 }
