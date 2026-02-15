@@ -12,7 +12,12 @@ class ProfileUpdateTest extends TestCase
 
     public function test_profile_page_is_displayed()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'account_role' => 'peminjam',
+            'role' => 'murid',
+            'kelas' => 'X PPLG 1',
+            'identitas' => 'PRF-0001',
+        ]);
 
         $response = $this
             ->actingAs($user)
@@ -30,6 +35,11 @@ class ProfileUpdateTest extends TestCase
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
                 'email' => 'test@example.com',
+                'account_role' => 'peminjam',
+                'role' => 'murid',
+                'kelas' => 'XI PPLG 2',
+                'identitas' => 'PRF-1001',
+                'phone' => '081234567890',
             ]);
 
         $response
@@ -45,13 +55,23 @@ class ProfileUpdateTest extends TestCase
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'account_role' => 'peminjam',
+            'role' => 'murid',
+            'kelas' => 'X PPLG 1',
+            'identitas' => 'PRF-0002',
+        ]);
 
         $response = $this
             ->actingAs($user)
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
                 'email' => $user->email,
+                'account_role' => $user->account_role,
+                'role' => $user->role,
+                'kelas' => $user->kelas,
+                'identitas' => $user->identitas,
+                'phone' => $user->phone,
             ]);
 
         $response

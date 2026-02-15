@@ -3,6 +3,8 @@ import axios from 'axios';
 import { CheckCircle, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
 import type { BreadcrumbItem, SharedData } from '@/types';
@@ -26,11 +28,17 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', {
 const formatDate = (value?: string | null) =>
     value ? dateFormatter.format(new Date(value)) : '-';
 
+const currencyFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+});
+
 type ReturnStatus = 'menunggu' | 'tepat waktu' | 'telat' | 'rusak' | 'hilang';
 
 type ReturnRow = {
     pengembalian_id: number;
-    loan_id: number;
+    loan_id: number | null;
     nama_barang: string;
     peminjam: string;
     kelas: string;
@@ -38,6 +46,9 @@ type ReturnRow = {
     batas_peminjaman?: string | null;
     tanggal_dikembalikan?: string | null;
     status: ReturnStatus;
+    catatan_petugas?: string | null;
+    telat_hari?: number | null;
+    total_denda?: number | null;
 };
 
 const statusConfig: Record<
@@ -101,6 +112,23 @@ const renderStatusBadge = (status: ReturnStatus) => {
     );
 };
 
+const renderNote = (item: ReturnRow) => {
+    if (item.status === 'telat') {
+        const totalFine = item.total_denda ?? 0;
+        if (totalFine > 0) {
+            const suffix = item.telat_hari ? ` (${item.telat_hari} hari)` : '';
+            return `Denda ${currencyFormatter.format(totalFine)}${suffix}`;
+        }
+        return 'Tidak ada denda';
+    }
+
+    if (item.status === 'rusak' || item.status === 'hilang') {
+        return item.catatan_petugas?.trim() || 'Catatan belum diisi';
+    }
+
+    return '-';
+};
+
 export default function AdminDataPengembalianPage() {
     const { items, filters } = usePage<PageProps>().props;
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
@@ -111,9 +139,25 @@ export default function AdminDataPengembalianPage() {
     const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
     const [pendingStatus, setPendingStatus] =
         useState<ReturnStatus>('menunggu');
+    const [pendingNote, setPendingNote] = useState('');
     const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
     const [bulkLoading, setBulkLoading] = useState(false);
     const [detailReturn, setDetailReturn] = useState<ReturnRow | null>(null);
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(items, 10);
 
     const visitWithFilters = (overrides?: {
         search?: string;
@@ -190,25 +234,40 @@ export default function AdminDataPengembalianPage() {
     const beginStatusEdit = (item: ReturnRow) => {
         setEditingStatusId(item.pengembalian_id);
         setPendingStatus(item.status);
+        setPendingNote(item.catatan_petugas ?? '');
     };
 
     const cancelStatusEdit = () => {
         setEditingStatusId(null);
+        setPendingNote('');
     };
 
     const submitStatusEdit = async (item: ReturnRow) => {
+        const requiresNote =
+            pendingStatus === 'rusak' || pendingStatus === 'hilang';
+        const trimmedNote = pendingNote.trim();
+
+        if (requiresNote && trimmedNote === '') {
+            Swal.fire(
+                'Catatan wajib',
+                'Mohon isi catatan untuk status rusak atau hilang.',
+                'warning',
+            );
+            return;
+        }
+
         setStatusLoadingId(item.pengembalian_id);
         try {
             await axios.patch(
                 `/admin/data-pengembalian/pengembalian/${item.pengembalian_id}/status`,
-                { status: pendingStatus },
+                {
+                    status: pendingStatus,
+                    catatan_petugas: requiresNote ? trimmedNote : null,
+                },
             );
             Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
             setEditingStatusId(null);
-            router.reload({
-                preserveState: true,
-                preserveScroll: true,
-            });
+            router.reload({ only: ['items'] });
         } catch (error) {
             Swal.fire('Gagal', 'Tidak dapat memperbarui status.', 'error');
         } finally {
@@ -292,10 +351,7 @@ export default function AdminDataPengembalianPage() {
             );
             setSelected([]);
             Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
-            router.reload({
-                preserveState: true,
-                preserveScroll: true,
-            });
+            router.reload({ only: ['items'] });
         } catch (error) {
             Swal.fire('Gagal', 'Tidak dapat memperbarui status.', 'error');
         } finally {
@@ -394,6 +450,7 @@ export default function AdminDataPengembalianPage() {
                                     <th className="px-4 py-4">
                                         Tanggal Dikembalikan
                                     </th>
+                                    <th className="px-4 py-4">Catatan</th>
                                 </tr>
                                 <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
                                     <th className="px-6 py-3" />
@@ -439,10 +496,11 @@ export default function AdminDataPengembalianPage() {
                                     <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
+                                    <th className="px-4 py-3" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => {
+                                {paginatedItems.map((item, index) => {
                                     const isSelected = selected.includes(
                                         item.pengembalian_id,
                                     );
@@ -466,7 +524,7 @@ export default function AdminDataPengembalianPage() {
                                                 />
                                             </td>
                                             <td className="px-2 py-4 font-semibold text-[#1A3263]">
-                                                {index + 1}
+                                                {from + index}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2 text-[#1A3263]">
@@ -548,6 +606,28 @@ export default function AdminDataPengembalianPage() {
                                                                 ),
                                                             )}
                                                         </select>
+                                                        {(pendingStatus ===
+                                                            'rusak' ||
+                                                            pendingStatus ===
+                                                                'hilang') && (
+                                                            <textarea
+                                                                value={
+                                                                    pendingNote
+                                                                }
+                                                                onChange={(
+                                                                    event,
+                                                                ) =>
+                                                                    setPendingNote(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                placeholder="Catatan kerusakan / kehilangan"
+                                                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
+                                                                rows={2}
+                                                            />
+                                                        )}
                                                         <button
                                                             type="button"
                                                             onClick={() =>
@@ -628,13 +708,16 @@ export default function AdminDataPengembalianPage() {
                                                     item.tanggal_dikembalikan,
                                                 )}
                                             </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {renderNote(item)}
+                                            </td>
                                         </tr>
                                     );
                                 })}
                                 {items.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={9}
+                                            colSpan={10}
                                             className="px-6 py-10 text-center text-sm text-[#547792]"
                                         >
                                             Belum ada pengembalian untuk
@@ -646,8 +729,20 @@ export default function AdminDataPengembalianPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>
@@ -705,6 +800,14 @@ export default function AdminDataPengembalianPage() {
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-semibold">Status:</span>
                                 {renderStatusBadge(detailReturn.status)}
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-[#547792] uppercase">
+                                    Catatan
+                                </p>
+                                <p className="mt-1 text-sm text-[#1A3263]">
+                                    {renderNote(detailReturn)}
+                                </p>
                             </div>
                             <div className="bg-[#F8FAFC] px-4 py-3 text-xs font-semibold text-[#1A3263]">
                                 <p>

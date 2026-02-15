@@ -3,6 +3,8 @@ import axios from 'axios';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Eye, PencilLine, Plus, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
 import type { BreadcrumbItem, SharedData } from '@/types';
@@ -285,6 +287,21 @@ export default function AdminDataPeminjamanPage() {
             (item) => normalizeStatusValue(item.status) === statusFilter,
         );
     }, [localItems, statusFilter]);
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(visibleItems, 10);
 
     const toggleSelectAll = () => {
         if (
@@ -638,7 +655,7 @@ export default function AdminDataPeminjamanPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {visibleItems.map((item, index) => {
+                                {paginatedItems.map((item, index) => {
                                     const isSelected = selected.includes(
                                         item.id,
                                     );
@@ -660,7 +677,7 @@ export default function AdminDataPeminjamanPage() {
                                                 />
                                             </td>
                                             <td className="px-2 py-4 font-semibold text-[#1A3263]">
-                                                {index + 1}
+                                                {from + index}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center gap-2 text-[#1A3263]">
@@ -834,8 +851,20 @@ export default function AdminDataPeminjamanPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {visibleItems.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

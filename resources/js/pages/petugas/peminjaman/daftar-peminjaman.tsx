@@ -1,6 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/use-pagination';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import {
@@ -199,6 +201,21 @@ export default function PetugasDataPeminjamanPage() {
         return map;
     }, [borrowers]);
 
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(localItems, 10);
+
     const beginStatusEdit = (item: LoanRow) => {
         setEditingStatusId(item.id);
         setPendingStatus(normalizeEditableStatus(item.status));
@@ -373,13 +390,13 @@ export default function PetugasDataPeminjamanPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {localItems.map((item, index) => (
+                                {paginatedItems.map((item, index) => (
                                     <tr
                                         key={item.id}
                                         className="text-sm transition hover:bg-[#F8F6F1]"
                                     >
                                         <td className="px-4 py-4 font-semibold text-[#1A3263]">
-                                            {index + 1}
+                                            {from + index}
                                         </td>
                                         <td className="px-4 py-4 text-[#1A3263]">
                                             {editingStatusId === item.id ? (
@@ -509,8 +526,20 @@ export default function PetugasDataPeminjamanPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {localItems.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

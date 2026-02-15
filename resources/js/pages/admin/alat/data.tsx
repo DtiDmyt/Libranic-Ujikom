@@ -1,5 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import {
     CheckCircle2,
     Eye,
@@ -90,6 +92,21 @@ export default function AdminDataAlatPage() {
     const [selected, setSelected] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
     const [detailItem, setDetailItem] = useState<ItemRow | null>(null);
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(items, 10);
 
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
@@ -441,7 +458,7 @@ export default function AdminDataAlatPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => {
+                                {paginatedItems.map((item, index) => {
                                     const checked = selected.includes(item.id);
                                     return (
                                         <tr
@@ -461,7 +478,7 @@ export default function AdminDataAlatPage() {
                                                 />
                                             </td>
                                             <td className="px-2 py-4 font-semibold text-[#1A3263]">
-                                                {index + 1}
+                                                {from + index}
                                             </td>
                                             <td className="flex items-center gap-2 px-4 py-4 text-[#1A3263]">
                                                 <button
@@ -544,8 +561,20 @@ export default function AdminDataAlatPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

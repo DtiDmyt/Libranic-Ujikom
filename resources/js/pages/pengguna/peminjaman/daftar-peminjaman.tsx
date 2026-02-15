@@ -1,3 +1,5 @@
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/use-pagination';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -69,6 +71,21 @@ export default function PenggunaDaftarPeminjamanPage() {
     }, [filters.search]);
 
     const hasRejectedItem = items.some((item) => item.status === 'ditolak');
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(items, 10);
 
     const visitWithFilters = useCallback(
         (overrides?: Partial<{ search: string; status: string }>) => {
@@ -201,13 +218,13 @@ export default function PenggunaDaftarPeminjamanPage() {
                             </thead>
 
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => (
+                                {paginatedItems.map((item, index) => (
                                     <tr
                                         key={item.id}
                                         className="text-sm hover:bg-[#F8F6F1]"
                                     >
                                         <td className="px-4 py-4 font-semibold">
-                                            {index + 1}
+                                            {from + index}
                                         </td>
 
                                         {/* AKSI */}
@@ -307,8 +324,20 @@ export default function PenggunaDaftarPeminjamanPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data peminjaman
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

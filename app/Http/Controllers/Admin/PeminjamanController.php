@@ -121,6 +121,13 @@ class PeminjamanController extends Controller
         $borrower = User::find($validated['peminjam_id']);
         $tool = DaftarBarang::find($validated['daftarbarang_id']);
 
+        if (!$tool || !$tool->hasSufficientStock((int) $validated['jumlah'])) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Stok alat tidak mencukupi untuk jumlah yang diajukan.');
+        }
+
         Peminjaman::create([
             'user_id' => $borrower?->id,
             'daftarbarang_id' => $tool?->id,
@@ -134,6 +141,8 @@ class PeminjamanController extends Controller
             'status' => 'menunggu',
             'denda_per_hari' => $tool?->denda_keterlambatan ?? 0,
         ]);
+
+        $tool->reserveStock((int) $validated['jumlah']);
 
         return redirect()
             ->route('admin.data-peminjaman.peminjaman.index')
@@ -214,11 +223,32 @@ class PeminjamanController extends Controller
             'reason' => ['required_if:status,ditolak', 'string', 'max:500'],
         ]);
 
-        $loan->status = $data['status'];
-        $loan->alasan_penolakan = $data['status'] === 'ditolak' ? $data['reason'] : null;
-        $loan->save();
+        $previousStatus = $loan->status ?? 'menunggu';
+        $newStatus = $data['status'];
 
         $loan->loadMissing(['alat', 'user']);
+        $tool = $loan->alat;
+        $amount = (int) ($loan->jumlah_pinjam ?? 0);
+
+        if ($previousStatus === 'ditolak' && $newStatus !== 'ditolak' && $tool && !$tool->hasSufficientStock($amount)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Stok alat tidak mencukupi untuk mengaktifkan kembali peminjaman ini.',
+            ], 422);
+        }
+
+        $loan->status = $newStatus;
+        $loan->alasan_penolakan = $newStatus === 'ditolak' ? $data['reason'] : null;
+        $loan->save();
+
+        if ($tool && $amount > 0) {
+            if ($previousStatus !== 'ditolak' && $newStatus === 'ditolak') {
+                $tool->releaseStock($amount);
+            } elseif ($previousStatus === 'ditolak' && $newStatus !== 'ditolak') {
+                $tool->reserveStock($amount);
+            }
+        }
+
         $actor = $request->user();
         $actorName = $actor?->name ?? 'Sistem';
         $borrowerName = $loan->nama_peminjam ?? $loan->user?->name ?? 'peminjam';

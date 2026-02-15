@@ -18,12 +18,17 @@ class Pengembalian extends Model
         'tanggal_pengembalian',
         'kondisi',
         'catatan',
+        'catatan_petugas',
         'lampiran_path',
         'status',
+        'telat_hari',
+        'total_denda',
     ];
 
     protected $casts = [
         'tanggal_pengembalian' => 'date',
+        'telat_hari' => 'integer',
+        'total_denda' => 'integer',
     ];
 
     public function peminjaman(): BelongsTo

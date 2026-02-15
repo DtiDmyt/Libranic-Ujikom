@@ -50,20 +50,37 @@ class DashboardController extends Controller
     {
         $period = Carbon::now();
 
-        return Pengembalian::with('peminjaman:id,denda_per_hari,tanggal_kembali')
+        return Pengembalian::with([
+            'peminjaman:id,denda_per_hari,tanggal_kembali,daftarbarang_id',
+            'peminjaman.alat:id,denda_keterlambatan',
+        ])
             ->whereYear('tanggal_pengembalian', $period->year)
             ->whereMonth('tanggal_pengembalian', $period->month)
             ->get()
             ->sum(function (Pengembalian $pengembalian) {
+                if ($pengembalian->total_denda !== null) {
+                    return (int) $pengembalian->total_denda;
+                }
+
                 $loan = $pengembalian->peminjaman;
 
-                if (! $loan || ! $loan->tanggal_kembali || ! $pengembalian->tanggal_pengembalian) {
+                if (
+                    ! $loan
+                    || ! $loan->tanggal_kembali
+                    || ! $pengembalian->tanggal_pengembalian
+                    || $pengembalian->tanggal_pengembalian->lessThanOrEqualTo($loan->tanggal_kembali)
+                ) {
                     return 0;
                 }
 
-                $lateDays = max(0, $pengembalian->tanggal_pengembalian->diffInDays($loan->tanggal_kembali, false));
+                $lateDays = $loan->tanggal_kembali->diffInDays($pengembalian->tanggal_pengembalian);
+                $perDayFine = (int) ($loan->denda_per_hari ?? 0);
 
-                return $lateDays * ($loan->denda_per_hari ?? 0);
+                if ($perDayFine <= 0) {
+                    $perDayFine = (int) ($loan->alat?->denda_keterlambatan ?? 0);
+                }
+
+                return $lateDays * $perDayFine;
             });
     }
 

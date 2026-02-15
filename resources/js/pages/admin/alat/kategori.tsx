@@ -1,7 +1,9 @@
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { Plus, PencilLine, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Swal from 'sweetalert2';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
 import type { BreadcrumbItem } from '@/types';
@@ -35,6 +37,21 @@ export default function AdminKategoriAlatPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [selected, setSelected] = useState<number[]>([]);
 
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(categories, 5);
+
     const toggleSelect = (id: number) => {
         setSelected((prev) =>
             prev.includes(id)
@@ -54,12 +71,6 @@ export default function AdminKategoriAlatPage() {
     const allSelected =
         selected.length === categories.length && categories.length > 0;
     const hasSelected = selected.length > 0;
-
-    const totalLabel = useMemo(
-        () =>
-            `Menampilkan 1 sampai ${categories.length} dari ${categories.length} data`,
-        [categories.length],
-    );
 
     const submitForm = () => {
         if (editingId) {
@@ -264,7 +275,7 @@ export default function AdminKategoriAlatPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#EEF1FA] bg-white">
-                                    {categories.map((category, index) => {
+                                    {paginatedItems.map((category, index) => {
                                         const isChecked = selected.includes(
                                             category.id,
                                         );
@@ -292,7 +303,7 @@ export default function AdminKategoriAlatPage() {
                                                     />
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-medium text-[#1A3263]">
-                                                    {index + 1}
+                                                    {from + index}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <button
@@ -317,10 +328,19 @@ export default function AdminKategoriAlatPage() {
                         </div>
 
                         <div className="border-t border-[#E8E2DB] px-6 py-3">
-                            <p className="text-xs text-[#547792]">
-                                Menampilkan 1 sampai {categories.length} dari{' '}
-                                {categories.length} data
-                            </p>
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                from={from}
+                                to={to}
+                                total={total}
+                                pageNumbers={pageNumbers}
+                                hasNextPage={hasNextPage}
+                                hasPrevPage={hasPrevPage}
+                                onPageChange={goToPage}
+                                onNext={nextPage}
+                                onPrev={prevPage}
+                            />
                         </div>
                     </div>
                 </div>

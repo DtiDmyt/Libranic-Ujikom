@@ -1,3 +1,5 @@
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/use-pagination';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -19,6 +21,9 @@ type ReturnRow = {
     tanggal_dikembalikan?: string | null;
     status: ReturnStatus;
     detail_url: string;
+    catatan_petugas?: string | null;
+    telat_hari?: number | null;
+    total_denda?: number | null;
 };
 
 type PageProps = SharedData & {
@@ -38,6 +43,12 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' });
 
 const formatDate = (value?: string | null) =>
     value ? dateFormatter.format(new Date(value)) : '-';
+
+const currencyFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+});
 
 const statusConfig: Record<
     ReturnStatus,
@@ -92,6 +103,23 @@ const renderStatusBadge = (status: ReturnStatus) => {
     );
 };
 
+const renderNote = (item: ReturnRow) => {
+    if (item.status === 'telat') {
+        const totalFine = item.total_denda ?? 0;
+        if (totalFine > 0) {
+            const suffix = item.telat_hari ? ` (${item.telat_hari} hari)` : '';
+            return `Denda ${currencyFormatter.format(totalFine)}${suffix}`;
+        }
+        return 'Tidak ada denda';
+    }
+
+    if (item.status === 'rusak' || item.status === 'hilang') {
+        return item.catatan_petugas?.trim() || 'Catatan belum diisi';
+    }
+
+    return '-';
+};
+
 export default function PetugasDataPengembalianPage() {
     const { items, filters } = usePage<PageProps>().props;
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
@@ -101,7 +129,23 @@ export default function PetugasDataPengembalianPage() {
     const [editingStatusId, setEditingStatusId] = useState<number | null>(null);
     const [pendingStatus, setPendingStatus] =
         useState<ReturnStatus>('menunggu');
+    const [pendingNote, setPendingNote] = useState<string>('');
     const [statusLoadingId, setStatusLoadingId] = useState<number | null>(null);
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(items, 10);
 
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
@@ -139,23 +183,41 @@ export default function PetugasDataPengembalianPage() {
     const beginStatusEdit = (item: ReturnRow) => {
         setEditingStatusId(item.pengembalian_id);
         setPendingStatus(item.status);
+        setPendingNote(item.catatan_petugas ?? '');
     };
 
     const cancelStatusEdit = () => {
         setEditingStatusId(null);
         setStatusLoadingId(null);
+        setPendingNote('');
     };
 
     const submitStatusEdit = async (item: ReturnRow) => {
+        const requiresNote =
+            pendingStatus === 'rusak' || pendingStatus === 'hilang';
+        const trimmedNote = pendingNote.trim();
+
+        if (requiresNote && trimmedNote === '') {
+            Swal.fire(
+                'Catatan wajib',
+                'Mohon isi catatan ketika status rusak atau hilang.',
+                'warning',
+            );
+            return;
+        }
+
         setStatusLoadingId(item.pengembalian_id);
         try {
             await axios.patch(
                 `/petugas/pengembalian/${item.pengembalian_id}/status`,
-                { status: pendingStatus },
+                {
+                    status: pendingStatus,
+                    catatan_petugas: requiresNote ? trimmedNote : null,
+                },
             );
             Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
             setEditingStatusId(null);
-            router.reload({ preserveState: true, preserveScroll: true });
+            router.reload({ only: ['items'] });
         } catch (error) {
             Swal.fire('Gagal', 'Tidak dapat memperbarui status.', 'error');
         } finally {
@@ -198,6 +260,7 @@ export default function PetugasDataPengembalianPage() {
                                     <th className="px-4 py-4">
                                         Tanggal Pengembalian
                                     </th>
+                                    <th className="px-4 py-4">Catatan</th>
                                 </tr>
                                 <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
                                     <th className="px-4 py-3" />
@@ -241,16 +304,17 @@ export default function PetugasDataPengembalianPage() {
                                     <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
                                     <th className="px-4 py-3" />
+                                    <th className="px-4 py-3" />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => (
+                                {paginatedItems.map((item, index) => (
                                     <tr
                                         key={item.pengembalian_id}
                                         className="text-sm transition hover:bg-[#F8F6F1]"
                                     >
                                         <td className="px-4 py-4 font-semibold text-[#1A3263]">
-                                            {index + 1}
+                                            {from + index}
                                         </td>
                                         <td className="px-4 py-4 text-[#1A3263]">
                                             {editingStatusId ===
@@ -284,6 +348,23 @@ export default function PetugasDataPengembalianPage() {
                                                             ),
                                                         )}
                                                     </select>
+                                                    {(pendingStatus ===
+                                                        'rusak' ||
+                                                        pendingStatus ===
+                                                            'hilang') && (
+                                                        <textarea
+                                                            value={pendingNote}
+                                                            onChange={(event) =>
+                                                                setPendingNote(
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            placeholder="Catatan kerusakan / kehilangan"
+                                                            className="mt-2 w-full rounded-2xl border border-[#D7DFEE] px-3 py-2 text-xs text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
+                                                            rows={2}
+                                                        />
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() =>
@@ -363,12 +444,15 @@ export default function PetugasDataPengembalianPage() {
                                                 item.tanggal_dikembalikan,
                                             )}
                                         </td>
+                                        <td className="px-4 py-4 text-[#1A3263]">
+                                            {renderNote(item)}
+                                        </td>
                                     </tr>
                                 ))}
                                 {items.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={7}
+                                            colSpan={8}
                                             className="px-6 py-10 text-center text-sm text-[#547792]"
                                         >
                                             Belum ada pengembalian untuk
@@ -379,8 +463,20 @@ export default function PetugasDataPengembalianPage() {
                             </tbody>
                         </table>
                     </div>
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

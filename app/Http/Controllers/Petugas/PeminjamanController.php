@@ -80,13 +80,32 @@ class PeminjamanController extends Controller
             'reason' => ['required_if:status,ditolak', 'string', 'max:500'],
         ]);
 
-        $loan->status = $data['status'];
-        $loan->alasan_penolakan = $data['status'] === 'ditolak'
-            ? $data['reason']
-            : null;
-        $loan->save();
+        $previousStatus = $loan->status ?? 'menunggu';
+        $newStatus = $data['status'];
 
         $loan->loadMissing(['alat', 'user']);
+        $tool = $loan->alat;
+        $amount = (int) ($loan->jumlah_pinjam ?? 0);
+
+        if ($previousStatus === 'ditolak' && $newStatus !== 'ditolak' && $tool && !$tool->hasSufficientStock($amount)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Stok alat tidak mencukupi untuk mengaktifkan kembali peminjaman ini.',
+            ], 422);
+        }
+
+        $loan->status = $newStatus;
+        $loan->alasan_penolakan = $newStatus === 'ditolak' ? $data['reason'] : null;
+        $loan->save();
+
+        if ($tool && $amount > 0) {
+            if ($previousStatus !== 'ditolak' && $newStatus === 'ditolak') {
+                $tool->releaseStock($amount);
+            } elseif ($previousStatus === 'ditolak' && $newStatus !== 'ditolak') {
+                $tool->reserveStock($amount);
+            }
+        }
+
         $actor = $request->user();
         $actorName = $actor?->name ?? 'Petugas';
         $borrowerName = $loan->nama_peminjam ?? $loan->user?->name ?? 'peminjam';

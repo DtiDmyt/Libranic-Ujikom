@@ -1,3 +1,5 @@
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/hooks/use-pagination';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Eye, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -20,6 +22,14 @@ type LoanHistoryRow = {
     return_status: string;
     return_status_label: string;
     detail_url: string;
+    late_days?: number;
+    penalty?: number;
+    pengembalian?: {
+        kondisi?: string | null;
+        catatan?: string | null;
+        catatan_petugas?: string | null;
+        lampiran_url?: string | null;
+    };
 };
 
 type PageProps = SharedData & {
@@ -89,6 +99,41 @@ const formatDate = (value?: string | null) =>
           }).format(new Date(value))
         : '-';
 
+const currencyFormatter = new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+});
+
+const resolveNote = (item: LoanHistoryRow): string => {
+    const status = normalizeReturnStatus(item.return_status);
+    const noteFromOfficer = item.pengembalian?.catatan_petugas?.trim();
+
+    if (status === 'tepat waktu') {
+        return '-';
+    }
+
+    if (status === 'telat') {
+        const penalty = item.penalty ?? 0;
+        const lateDays = item.late_days ?? 0;
+        if (penalty <= 0) {
+            return 'Tidak ada denda';
+        }
+
+        return `Denda ${currencyFormatter.format(penalty)}${lateDays > 0 ? ` (${lateDays} hari)` : ''}`;
+    }
+
+    if (status === 'rusak' || status === 'hilang') {
+        return noteFromOfficer || 'Catatan belum diisi';
+    }
+
+    if (status === 'ditolak') {
+        return item.pengembalian?.catatan?.trim() || 'Peminjaman ditolak';
+    }
+
+    return '-';
+};
+
 const statusFilterOptions = [
     { value: 'semua', label: 'Semua Status' },
     { value: 'menunggu', label: 'Proses Pengecekan' },
@@ -115,6 +160,21 @@ export default function PenggunaRiwayatPeminjamanPage() {
             return matchesStatus && matchesSearch;
         });
     }, [items, searchTerm, statusFilter]);
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(filteredItems, 10);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -161,6 +221,7 @@ export default function PenggunaRiwayatPeminjamanPage() {
                                     <th className="px-4 py-4">
                                         Tanggal Dikembalikan
                                     </th>
+                                    <th className="px-4 py-4">Catatan</th>
                                 </tr>
                                 <tr className="bg-white text-[11px] font-normal text-[#547792]">
                                     <th />
@@ -209,10 +270,11 @@ export default function PenggunaRiwayatPeminjamanPage() {
                                     <th />
                                     <th />
                                     <th />
+                                    <th />
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {filteredItems.map((item, index) => {
+                                {paginatedItems.map((item, index) => {
                                     const normalizedStatus =
                                         normalizeReturnStatus(
                                             item.return_status,
@@ -226,7 +288,7 @@ export default function PenggunaRiwayatPeminjamanPage() {
                                             className="hover:bg-[#F8F6F1]"
                                         >
                                             <td className="px-4 py-4 font-semibold">
-                                                {index + 1}
+                                                {from + index}
                                             </td>
                                             <td className="px-4 py-4">
                                                 <Link
@@ -266,13 +328,16 @@ export default function PenggunaRiwayatPeminjamanPage() {
                                                     item.tanggal_dikembalikan,
                                                 )}
                                             </td>
+                                            <td className="px-4 py-4 text-[#1A3263]">
+                                                {resolveNote(item)}
+                                            </td>
                                         </tr>
                                     );
                                 })}
                                 {filteredItems.length === 0 && (
                                     <tr>
                                         <td
-                                            colSpan={8}
+                                            colSpan={9}
                                             className="py-10 text-center text-sm text-[#547792]"
                                         >
                                             Belum ada riwayat pengembalian untuk
@@ -282,6 +347,22 @@ export default function PenggunaRiwayatPeminjamanPage() {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

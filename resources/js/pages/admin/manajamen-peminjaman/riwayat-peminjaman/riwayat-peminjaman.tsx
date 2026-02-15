@@ -1,6 +1,8 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Eye } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
 import type { BreadcrumbItem, SharedData } from '@/types';
@@ -137,6 +139,21 @@ export default function AdminRiwayatPeminjamanPage() {
     );
     const [detailRow, setDetailRow] = useState<HistoryRow | null>(null);
 
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(items, 10);
+
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
         setStatusFilter(filters.status ?? 'semua');
@@ -252,13 +269,13 @@ export default function AdminRiwayatPeminjamanPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => (
+                                {paginatedItems.map((item, index) => (
                                     <tr
                                         key={item.id}
                                         className="text-sm text-[#1A3263] transition hover:bg-[#F8F6F1]"
                                     >
                                         <td className="px-2 py-4 font-semibold">
-                                            {index + 1}
+                                            {from + index}
                                         </td>
                                         <td className="px-4 py-4">
                                             <button
@@ -314,8 +331,20 @@ export default function AdminRiwayatPeminjamanPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

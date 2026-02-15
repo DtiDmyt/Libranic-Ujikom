@@ -118,6 +118,14 @@ class PeminjamanController extends Controller
         $item = DaftarBarang::findOrFail($data['alat_id']);
         $user = $request->user();
 
+        if (!$item->hasSufficientStock((int) $data['jumlah_pinjam'])) {
+            return Redirect::back()
+                ->withErrors([
+                    'jumlah_pinjam' => 'Stok alat tidak mencukupi untuk jumlah yang diajukan.',
+                ])
+                ->withInput();
+        }
+
         $loan = Peminjaman::create([
             'user_id' => $user->id,
             'daftarbarang_id' => $data['alat_id'],
@@ -131,6 +139,8 @@ class PeminjamanController extends Controller
             'status' => 'menunggu',
             'denda_per_hari' => $item->denda_keterlambatan ?? 0,
         ]);
+
+        $item->reserveStock((int) $data['jumlah_pinjam']);
 
         ActivityLog::record(
             $user->id,
@@ -170,8 +180,14 @@ class PeminjamanController extends Controller
         $items = $loans->map(function (Peminjaman $loan) {
             $pengembalian = $loan->pengembalian;
             $returnStatus = $this->resolveReturnStatus($loan, $pengembalian);
-            $lateDays = $this->calculateLateDays($loan, $pengembalian);
-            $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
+            $lateDays = $pengembalian?->telat_hari;
+            if ($lateDays === null) {
+                $lateDays = $this->calculateLateDays($loan, $pengembalian);
+            }
+            $penalty = $pengembalian?->total_denda;
+            if ($penalty === null) {
+                $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
+            }
 
             return [
                 'id' => $loan->id,
@@ -191,6 +207,7 @@ class PeminjamanController extends Controller
                 'pengembalian' => [
                     'kondisi' => $pengembalian?->kondisi,
                     'catatan' => $pengembalian?->catatan,
+                    'catatan_petugas' => $pengembalian?->catatan_petugas,
                     'lampiran_url' => $pengembalian?->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
                 ],
             ];
@@ -209,8 +226,14 @@ class PeminjamanController extends Controller
         $loan->loadMissing(['alat', 'pengembalian']);
         $pengembalian = $loan->pengembalian;
         $returnStatus = $this->resolveReturnStatus($loan, $pengembalian);
-        $lateDays = $this->calculateLateDays($loan, $pengembalian);
-        $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
+        $lateDays = $pengembalian?->telat_hari;
+        if ($lateDays === null) {
+            $lateDays = $this->calculateLateDays($loan, $pengembalian);
+        }
+        $penalty = $pengembalian?->total_denda;
+        if ($penalty === null) {
+            $penalty = $lateDays * ($loan->denda_per_hari ?? 0);
+        }
 
         return Inertia::render('pengguna/riwayat-peminjaman/detail-riwayat-peminjaman', [
             'loan' => [
@@ -229,6 +252,7 @@ class PeminjamanController extends Controller
                 'tanggal_pengembalian' => $pengembalian?->tanggal_pengembalian?->toDateString(),
                 'kondisi' => $pengembalian?->kondisi,
                 'catatan' => $pengembalian?->catatan,
+                'catatan_petugas' => $pengembalian?->catatan_petugas,
                 'lampiran_url' => $pengembalian?->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
             ],
             'return_status' => $returnStatus,
@@ -283,8 +307,11 @@ class PeminjamanController extends Controller
             return 0;
         }
 
-        $difference = $pengembalian->tanggal_pengembalian->diffInDays($loan->tanggal_kembali, false);
-        return max(0, $difference);
+        if ($pengembalian->tanggal_pengembalian->lessThanOrEqualTo($loan->tanggal_kembali)) {
+            return 0;
+        }
+
+        return $loan->tanggal_kembali->diffInDays($pengembalian->tanggal_pengembalian);
     }
 
     private function statusLabel(string $status): string

@@ -23,6 +23,7 @@ class DaftarAlatController extends Controller
                     'stok' => max(0, (int) ($item->stok ?? 0)),
                     'gambar_url' => $item->gambar_url,
                     'status' => $item->status === 'publik' ? 'tersedia' : 'habis',
+                    'kategori_jurusan' => $item->kategori_jurusan,
                 ];
             })
             ->values();

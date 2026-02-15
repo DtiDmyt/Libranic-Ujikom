@@ -1,5 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import {
     Eye,
     PencilLine,
@@ -109,6 +111,21 @@ export default function AdminAdministratorPage() {
         () => items.filter((item) => item.can_manage).map((item) => item.id),
         [items],
     );
+
+    const {
+        paginatedItems,
+        currentPage,
+        totalPages,
+        from,
+        to,
+        total,
+        pageNumbers,
+        hasNextPage,
+        hasPrevPage,
+        goToPage,
+        nextPage,
+        prevPage,
+    } = usePagination(items, 10);
 
     useEffect(() => {
         setSearchTerm(filters.name ?? filters.email ?? '');
@@ -479,7 +496,7 @@ export default function AdminAdministratorPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[#F0EBE2] bg-white">
-                                {items.map((item, index) => {
+                                {paginatedItems.map((item, index) => {
                                     const checked = selected.includes(item.id);
                                     return (
                                         <tr
@@ -500,7 +517,7 @@ export default function AdminAdministratorPage() {
                                                 />
                                             </td>
                                             <td className="px-2 py-4 font-semibold text-[#1A3263]">
-                                                {index + 1}
+                                                {from + index}
                                             </td>
                                             <td className="flex flex-wrap items-center gap-2 px-4 py-4 text-[#1A3263]">
                                                 <button
@@ -596,8 +613,20 @@ export default function AdminAdministratorPage() {
                         </table>
                     </div>
 
-                    <div className="border-t border-[#E8E2DB] px-6 py-4 text-sm text-[#547792]">
-                        Menampilkan {items.length} data
+                    <div className="border-t border-[#E8E2DB] px-6 py-4">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            from={from}
+                            to={to}
+                            total={total}
+                            pageNumbers={pageNumbers}
+                            hasNextPage={hasNextPage}
+                            hasPrevPage={hasPrevPage}
+                            onPageChange={goToPage}
+                            onNext={nextPage}
+                            onPrev={prevPage}
+                        />
                     </div>
                 </div>
             </div>

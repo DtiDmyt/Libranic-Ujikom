@@ -1,4 +1,6 @@
 import { Head, usePage } from '@inertiajs/react';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination } from '@/components/ui/pagination';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
 
@@ -42,10 +44,14 @@ const getInitials = (name: string) => {
 export default function AdminLogAktivitasPage() {
     const { staffUsers, borrowerUsers } = usePage<PageProps>().props;
 
+    const staffPagination = usePagination(staffUsers, 10);
+    const borrowerPagination = usePagination(borrowerUsers, 10);
+
     const renderUserPanel = (
         title: string,
         description: string,
         users: ActiveUser[],
+        pagination: ReturnType<typeof usePagination<ActiveUser>>,
     ) => (
         <section className="rounded-3xl border border-[#E8E2DB] bg-white shadow-lg shadow-[#1A3263]/10">
             <div className="border-b border-[#E8E2DB] px-5 py-4">
@@ -61,7 +67,7 @@ export default function AdminLogAktivitasPage() {
                     </p>
                 ) : (
                     <ul className="space-y-4">
-                        {users.map((user) => (
+                        {pagination.paginatedItems.map((user, index) => (
                             <li
                                 key={user.id}
                                 className="flex items-start gap-3 border-b border-[#E8E2DB] pb-4 last:border-none last:pb-0"
@@ -110,6 +116,23 @@ export default function AdminLogAktivitasPage() {
                     </ul>
                 )}
             </div>
+            {users.length > 0 && (
+                <div className="border-t border-[#E8E2DB] px-5 py-3">
+                    <Pagination
+                        currentPage={pagination.currentPage}
+                        totalPages={pagination.totalPages}
+                        from={pagination.from}
+                        to={pagination.to}
+                        total={pagination.total}
+                        pageNumbers={pagination.pageNumbers}
+                        hasNextPage={pagination.hasNextPage}
+                        hasPrevPage={pagination.hasPrevPage}
+                        onPageChange={pagination.goToPage}
+                        onNext={pagination.nextPage}
+                        onPrev={pagination.prevPage}
+                    />
+                </div>
+            )}
         </section>
     );
 
@@ -128,6 +151,7 @@ export default function AdminLogAktivitasPage() {
                                     'Admin & Petugas',
                                     'Pantau aktivitas admin dan petugas yang sedang bertugas.',
                                     staffUsers,
+                                    staffPagination,
                                 )}
                             </div>
                             <div className="flex-1">
@@ -138,6 +162,7 @@ export default function AdminLogAktivitasPage() {
                                     'Murid & Guru',
                                     'Lihat siapa saja peminjam yang online dan terakhir aktif.',
                                     borrowerUsers,
+                                    borrowerPagination,
                                 )}
                             </div>
                         </div>

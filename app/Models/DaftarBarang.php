@@ -48,6 +48,39 @@ class DaftarBarang extends Model
         return $this->belongsTo(KategoriAlat::class);
     }
 
+    public function hasSufficientStock(int $amount): bool
+    {
+        if ($amount <= 0) {
+            return true;
+        }
+
+        return ($this->stok ?? 0) >= $amount;
+    }
+
+    public function reserveStock(int $amount): bool
+    {
+        if ($amount <= 0) {
+            return true;
+        }
+
+        if (!$this->hasSufficientStock($amount)) {
+            return false;
+        }
+
+        $this->decrement('stok', $amount);
+
+        return true;
+    }
+
+    public function releaseStock(int $amount): void
+    {
+        if ($amount <= 0) {
+            return;
+        }
+
+        $this->increment('stok', $amount);
+    }
+
     public function getGambarUrlAttribute(): ?string
     {
         return $this->gambar_path ? Storage::disk('public')->url($this->gambar_path) : null;
