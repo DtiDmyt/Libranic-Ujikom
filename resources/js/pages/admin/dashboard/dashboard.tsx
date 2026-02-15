@@ -12,7 +12,6 @@ import {
     Tooltip,
     XAxis,
     YAxis,
-    type TooltipProps,
 } from 'recharts';
 import { Line, LineChart } from 'recharts';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
@@ -31,6 +30,18 @@ type JurusanStat = {
     name: string;
     peminjaman: number;
     terlambat: number;
+};
+
+type JurusanTooltipEntry = {
+    dataKey?: string | number;
+    name?: string | number;
+    value?: number | string;
+};
+
+type JurusanTooltipProps = {
+    active?: boolean;
+    payload?: JurusanTooltipEntry[];
+    label?: string | number;
 };
 
 type QuickStatsPayload = {
@@ -57,23 +68,22 @@ type QuickStatConfig = {
     format: (value: number) => string;
 };
 
-const JurusanTooltip = ({
-    active,
-    payload,
-    label,
-}: TooltipProps<number, string>) => {
-    if (!active || !payload || payload.length === 0) {
+const JurusanTooltip = ({ active, payload, label }: JurusanTooltipProps) => {
+    if (!active || !payload?.length) {
         return null;
     }
 
     return (
         <div className="rounded-2xl border border-[#1A3263]/10 bg-white/95 px-4 py-3 text-sm shadow-lg">
             <p className="text-[11px] font-semibold tracking-[0.3em] text-[#547792] uppercase">
-                {label}
+                {label ?? '-'}
             </p>
             {payload.map((entry) => (
-                <p key={entry.dataKey} className="text-xs text-slate-600">
-                    {entry.name}: {entry.value}
+                <p
+                    key={`${entry.dataKey ?? entry.name ?? 'data'}`}
+                    className="text-xs text-slate-600"
+                >
+                    {entry.name ?? 'Total'}: {entry.value ?? 0}
                 </p>
             ))}
         </div>
