@@ -1,4 +1,5 @@
-import type { FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export type AccountRoleOption = 'admin' | 'petugas';
 
@@ -33,6 +34,8 @@ export default function AdminCredentialsForm<TForm>({
     submitLabel,
     isEdit = false,
 }: Props<TForm>) {
+    const [showPassword, setShowPassword] = useState(false);
+
     const roleLabels: Record<AccountRoleOption, string> = {
         admin: 'Administrator',
         petugas: 'Petugas',
@@ -111,19 +114,33 @@ export default function AdminCredentialsForm<TForm>({
                 <label className="text-sm font-semibold text-[#1A3263]">
                     Password {isEdit ? '(Opsional)' : '*'}
                 </label>
-                <input
-                    type="password"
-                    value={form.data.password}
-                    onChange={(event) =>
-                        form.setData('password', event.target.value)
-                    }
-                    placeholder={
-                        isEdit
-                            ? 'Kosongkan jika tidak diubah'
-                            : 'Minimal 8 karakter'
-                    }
-                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                />
+                <div className="relative mt-2">
+                    <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={form.data.password}
+                        onChange={(event) =>
+                            form.setData('password', event.target.value)
+                        }
+                        placeholder={
+                            isEdit
+                                ? 'Kosongkan jika tidak diubah'
+                                : 'Minimal 8 karakter'
+                        }
+                        className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 pr-10 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute top-1/2 right-3 -translate-y-1/2 text-[#8B9DC3] hover:text-[#1A3263] focus:outline-none"
+                        tabIndex={-1}
+                    >
+                        {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                        ) : (
+                            <Eye className="h-4 w-4" />
+                        )}
+                    </button>
+                </div>
                 {form.errors.password ? (
                     <p className="mt-1 text-xs text-red-600">
                         {form.errors.password}

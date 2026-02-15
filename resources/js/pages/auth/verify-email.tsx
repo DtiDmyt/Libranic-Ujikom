@@ -1,5 +1,6 @@
 // Components
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, router } from '@inertiajs/react';
+import Swal from 'sweetalert2';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -8,6 +9,39 @@ import { logout } from '@/routes';
 import { send } from '@/routes/verification';
 
 export default function VerifyEmail({ status }: { status?: string }) {
+    const handleLogout = (e: React.MouseEvent) => {
+        e.preventDefault();
+
+        Swal.fire({
+            title: 'Keluar dari akun?',
+            text: 'Apakah Anda yakin ingin keluar?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#1A3263',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Ya, Keluar',
+            cancelButtonText: 'Batal',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.post(
+                    logout(),
+                    {},
+                    {
+                        onSuccess: () => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil Keluar!',
+                                text: 'Anda telah keluar dari akun.',
+                                timer: 2000,
+                                showConfirmButton: false,
+                            });
+                        },
+                    },
+                );
+            }
+        });
+    };
+
     return (
         <AuthLayout
             title="Verifikasi email"
@@ -31,7 +65,8 @@ export default function VerifyEmail({ status }: { status?: string }) {
                         </Button>
 
                         <TextLink
-                            href={logout()}
+                            href="#"
+                            onClick={handleLogout}
                             className="mx-auto block text-sm"
                         >
                             Keluar
