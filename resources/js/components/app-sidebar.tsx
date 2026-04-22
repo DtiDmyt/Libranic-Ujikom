@@ -100,16 +100,16 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         icon: LayoutGrid,
                     },
                     {
-                        title: 'Manajemen Alat',
+                        title: 'Manajemen Buku',
                         icon: PackageOpen,
                         subItems: [
                             {
-                                title: 'Daftar Alat',
+                                title: 'Daftar Buku',
                                 href: '/admin/alat/data',
                                 icon: LibrarySquare,
                             },
                             {
-                                title: 'Kategori Alat',
+                                title: 'Kategori Buku',
                                 href: '/admin/alat/kategori',
                                 icon: FolderTree,
                             },
@@ -199,7 +199,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         icon: Home,
                     },
                     {
-                        title: 'Daftar Alat',
+                        title: 'Daftar Buku',
                         href: '/daftar-alat',
                         icon: LibrarySquare,
                     },
@@ -331,7 +331,7 @@ function BrandBlock({ href }: { href: string }) {
                     {!isCollapsed && (
                         <div className="min-w-0 text-left">
                             <p className="text-sm leading-snug font-semibold">
-                                Prestito
+                                Libranic
                             </p>
                         </div>
                     )}
