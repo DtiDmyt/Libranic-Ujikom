@@ -399,17 +399,17 @@ export default function AdminTambahPeminjamanPage() {
                         <div className="space-y-4 rounded-3xl border border-[#E8E2DB] bg-white p-6 shadow-sm">
                             <div>
                                 <p className="text-base font-semibold text-[#1A3263]">
-                                    Detail Alat
+                                    Detail Buku
                                 </p>
                                 <p className="text-xs text-[#547792]">
-                                    Pilih alat agar kode, lokasi, dan stok
+                                    Pilih buku agar kode, lokasi, dan stok
                                     tampil otomatis.
                                 </p>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-[#1A3263]">
-                                    Kategori Alat
+                                    Kategori Buku
                                 </label>
                                 <select
                                     value={form.data.kategori_alat_id}
@@ -421,7 +421,7 @@ export default function AdminTambahPeminjamanPage() {
                                 >
                                     {!hasCategories ? (
                                         <option value="">
-                                            Belum ada kategori alat
+                                            Belum ada kategori buku
                                         </option>
                                     ) : (
                                         <>
@@ -443,7 +443,7 @@ export default function AdminTambahPeminjamanPage() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-[#1A3263]">
-                                    Nama Alat *
+                                    Nama Buku *
                                 </label>
                                 <input
                                     type="text"
@@ -452,7 +452,7 @@ export default function AdminTambahPeminjamanPage() {
                                         setToolSearch(event.target.value)
                                     }
                                     disabled={!hasTools}
-                                    placeholder="Cari berdasarkan nama alat"
+                                    placeholder="Cari berdasarkan nama buku"
                                     className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none disabled:cursor-not-allowed"
                                 />
                                 <select
@@ -465,16 +465,16 @@ export default function AdminTambahPeminjamanPage() {
                                 >
                                     {!hasTools ? (
                                         <option value="">
-                                            Belum ada data alat
+                                            Belum ada data buku
                                         </option>
                                     ) : filteredTools.length === 0 ? (
                                         <option value="">
-                                            Tidak ada alat yang cocok
+                                            Tidak ada buku yang cocok
                                         </option>
                                     ) : (
                                         <>
                                             <option value="" disabled>
-                                                Pilih alat yang dipinjam
+                                                Pilih buku yang dipinjam
                                             </option>
                                             {filteredTools.map((tool) => (
                                                 <option
@@ -497,13 +497,13 @@ export default function AdminTambahPeminjamanPage() {
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
                                     <label className="text-sm font-semibold text-[#1A3263]">
-                                        Kode Alat
+                                        Kode Buku
                                     </label>
                                     <input
                                         type="text"
                                         value={kodeAlat}
                                         readOnly
-                                        placeholder="Pilih alat terlebih dahulu"
+                                        placeholder="Pilih buku terlebih dahulu"
                                         className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
                                     />
                                 </div>
@@ -515,7 +515,7 @@ export default function AdminTambahPeminjamanPage() {
                                         type="text"
                                         value={lokasiStok}
                                         readOnly
-                                        placeholder="Pilih alat terlebih dahulu"
+                                        placeholder="Pilih buku terlebih dahulu"
                                         className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
                                     />
                                 </div>
@@ -535,7 +535,7 @@ export default function AdminTambahPeminjamanPage() {
                                     </>
                                 ) : (
                                     <p className="text-sm font-semibold text-[#1A3263]">
-                                        Pilih alat untuk melihat detail stok.
+                                        Pilih buku untuk melihat detail stok.
                                     </p>
                                 )}
                             </div>

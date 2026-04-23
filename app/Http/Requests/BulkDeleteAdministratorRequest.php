@@ -14,7 +14,7 @@ class BulkDeleteAdministratorRequest extends FormRequest
 
     public function rules(): array
     {
-        $roles = config('administrator.roles', ['admin', 'petugas']);
+        $roles = config('administrator.roles', ['admin', 'peminjam']);
 
         return [
             'ids' => ['required', 'array', 'min:1'],

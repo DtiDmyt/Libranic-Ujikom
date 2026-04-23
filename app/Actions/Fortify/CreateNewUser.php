@@ -21,6 +21,7 @@ class CreateNewUser implements CreatesNewUsers
     {
         Validator::make($input, [
             ...$this->profileRules(),
+            'phone' => ['required', 'string', 'regex:/^08[0-9]{8,13}$/'],
             'password' => $this->passwordRules(),
         ])->validate();
 
@@ -31,7 +32,7 @@ class CreateNewUser implements CreatesNewUsers
             'status' => 'aktif',
             'role' => $input['role'] ?? 'murid',
             'kelas' => $input['kelas'] ?? null,
-            'phone' => $input['phone'] ?? null,
+            'phone' => $input['phone'],
             'identitas' => $input['identitas'] ?? null,
             'password' => $input['password'],
         ]);

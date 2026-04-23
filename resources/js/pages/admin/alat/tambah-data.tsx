@@ -1,5 +1,5 @@
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { ArrowLeft, ImageIcon } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import adminRoutes from '@/routes/admin';
@@ -16,40 +16,40 @@ type CategoryOption = {
     nama: string;
 };
 
-type Status = 'publik' | 'draft';
-
-type KodePreviewMap = Record<string, string>;
+type StatusBuku = 'tersedia' | 'dipinjam' | 'rusak' | 'hilang';
 
 type FormFields = {
-    nama_alat: string;
-    kategori_jurusan: string;
+    judul_buku: string;
+    penulis: string;
+    penerbit: string;
+    tahun_terbit: string;
     kategori_alat_id: string;
-    stok: string;
     kode_alat: string;
-    ruangan: string;
+    stok: string;
+    lokasi_rak: string;
+    status_buku: StatusBuku;
     denda_keterlambatan: string;
     kondisi_alat: string;
     deskripsi: string;
-    status: Status;
     gambar: File | null;
 };
 
 type PageProps = SharedData & {
     categories: CategoryOption[];
-    kodePreviews: KodePreviewMap;
+    kodePreviews: Record<string, string>;
 };
 
-const statusOptions: { value: Status; label: string }[] = [
-    { value: 'publik', label: 'Publik' },
-    { value: 'draft', label: 'Draft' },
+const statusOptions: { value: StatusBuku; label: string }[] = [
+    { value: 'tersedia', label: 'Tersedia' },
+    { value: 'dipinjam', label: 'Dipinjam' },
+    { value: 'rusak', label: 'Rusak' },
+    { value: 'hilang', label: 'Hilang' },
 ];
-
-const jurusanOptions = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Alat', href: '/admin/alat' },
-    { title: 'Daftar Alat', href: '/admin/alat/data' },
+    { title: 'Manajemen Buku', href: '/admin/alat' },
+    { title: 'Daftar Buku', href: '/admin/alat/data' },
     { title: 'Tambah Data', href: '/admin/alat/data/tambah' },
 ];
 
@@ -58,44 +58,23 @@ export default function AdminTambahDataAlatPage() {
     const hasCategories = categories.length > 0;
 
     const form = useForm<FormFields>({
-        nama_alat: '',
-        kategori_jurusan: '',
+        judul_buku: '',
+        penulis: '',
+        penerbit: '',
+        tahun_terbit: '',
         kategori_alat_id: '',
-        stok: '0',
         kode_alat: '',
-        ruangan: '',
+        stok: '0',
+        lokasi_rak: '',
+        status_buku: 'tersedia',
         denda_keterlambatan: '0',
         kondisi_alat: '',
         deskripsi: '',
-        status: 'publik',
         gambar: null,
     });
 
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const kodePreviewValue = useMemo(() => {
-        const jurusan = form.data.kategori_jurusan;
-        if (!jurusan) {
-            return '';
-        }
-
-        return kodePreviews[jurusan] ?? `ALT-${jurusan}-0001`;
-    }, [form.data.kategori_jurusan, kodePreviews]);
-
-    useEffect(() => {
-        if (!kodePreviewValue) {
-            if (form.data.kode_alat) {
-                form.setData('kode_alat', '');
-            }
-            return;
-        }
-
-        if (form.data.kode_alat !== kodePreviewValue) {
-            form.setData('kode_alat', kodePreviewValue);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [kodePreviewValue]);
 
     useEffect(() => {
         return () => {
@@ -105,15 +84,24 @@ export default function AdminTambahDataAlatPage() {
         };
     }, [previewUrl]);
 
+    useEffect(() => {
+        const kode = kodePreviews[form.data.kategori_alat_id] ?? '';
+
+        if (form.data.kode_alat !== kode) {
+            form.setData('kode_alat', kode);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.data.kategori_alat_id, kodePreviews]);
+
     const handleSubmit = () => {
-        alertLoading('Sedang menyimpan data alat...');
+        alertLoading('Sedang menyimpan data buku...');
         form.post('/admin/alat/data', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
                 setPreviewUrl(null);
                 closeAlert();
-                alertSuccess('Data alat berhasil ditambahkan.');
+                alertSuccess('Data buku berhasil ditambahkan.');
             },
             onError: () => {
                 closeAlert();
@@ -135,7 +123,7 @@ export default function AdminTambahDataAlatPage() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Tambah Data Alat" />
+            <Head title="Tambah Data Buku" />
             <form
                 className="space-y-6 bg-[#F5F1EA] p-6"
                 onSubmit={(event) => {
@@ -146,11 +134,11 @@ export default function AdminTambahDataAlatPage() {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="mt-2 text-3xl font-bold text-[#1A3263]">
-                            Tambah Data Alat
+                            Tambah Data Buku
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Lengkapi informasi alat agar mudah ditemukan oleh
-                            petugas.
+                            Lengkapi informasi buku agar mudah ditemukan oleh
+                            administrator.
                         </p>
                     </div>
                     <Link
@@ -163,62 +151,106 @@ export default function AdminTambahDataAlatPage() {
 
                 <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_0.8fr]">
                     <div className="space-y-6 rounded-3xl border border-[#E8E2DB] bg-white p-6 shadow-sm">
-                        <div>
-                            <label className="text-sm font-semibold text-[#1A3263]">
-                                Nama Alat *
-                            </label>
-                            <input
-                                type="text"
-                                value={form.data.nama_alat}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'nama_alat',
-                                        event.target.value,
-                                    )
-                                }
-                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                placeholder="Contoh: Bor Listrik"
-                            />
-                            {form.errors.nama_alat ? (
-                                <p className="mt-1 text-xs text-red-600">
-                                    {form.errors.nama_alat}
-                                </p>
-                            ) : null}
-                        </div>
-
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
                                 <label className="text-sm font-semibold text-[#1A3263]">
-                                    Kategori Jurusan *
+                                    Judul Buku *
                                 </label>
-                                <select
-                                    value={form.data.kategori_jurusan}
+                                <input
+                                    type="text"
+                                    value={form.data.judul_buku}
                                     onChange={(event) =>
                                         form.setData(
-                                            'kategori_jurusan',
+                                            'judul_buku',
                                             event.target.value,
                                         )
                                     }
                                     className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                >
-                                    <option value="" disabled>
-                                        Pilih jurusan
-                                    </option>
-                                    {jurusanOptions.map((jurusan) => (
-                                        <option key={jurusan} value={jurusan}>
-                                            {jurusan}
-                                        </option>
-                                    ))}
-                                </select>
-                                {form.errors.kategori_jurusan ? (
+                                    placeholder="Contoh: Laskar Pelangi"
+                                />
+                                {form.errors.judul_buku ? (
                                     <p className="mt-1 text-xs text-red-600">
-                                        {form.errors.kategori_jurusan}
+                                        {form.errors.judul_buku}
                                     </p>
                                 ) : null}
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-[#1A3263]">
-                                    Kategori Alat *
+                                    Penulis *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={form.data.penulis}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'penulis',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                                    placeholder="Contoh: Andrea Hirata"
+                                />
+                                {form.errors.penulis ? (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.penulis}
+                                    </p>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Penerbit *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={form.data.penerbit}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'penerbit',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                                    placeholder="Contoh: Bentang Pustaka"
+                                />
+                                {form.errors.penerbit ? (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.penerbit}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Tahun Terbit *
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1900}
+                                    max={3000}
+                                    value={form.data.tahun_terbit}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'tahun_terbit',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                                    placeholder="Contoh: 2024"
+                                />
+                                {form.errors.tahun_terbit ? (
+                                    <p className="mt-1 text-xs text-red-600">
+                                        {form.errors.tahun_terbit}
+                                    </p>
+                                ) : null}
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Kategori Buku *
                                 </label>
                                 <select
                                     value={form.data.kategori_alat_id}
@@ -257,10 +289,22 @@ export default function AdminTambahDataAlatPage() {
                                     </p>
                                 ) : !hasCategories ? (
                                     <p className="mt-1 text-xs text-[#B45309]">
-                                        Tambahkan kategori alat terlebih dahulu
+                                        Tambahkan kategori buku terlebih dahulu
                                         sebelum mengisi form ini.
                                     </p>
                                 ) : null}
+                            </div>
+                            <div>
+                                <label className="text-sm font-semibold text-[#1A3263]">
+                                    Kode Buku (otomatis)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={form.data.kode_alat}
+                                    readOnly
+                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
+                                    placeholder="Pilih kategori untuk melihat kode buku"
+                                />
                             </div>
                         </div>
 
@@ -277,7 +321,7 @@ export default function AdminTambahDataAlatPage() {
                                         form.setData('stok', event.target.value)
                                     }
                                     className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                    placeholder="Masukkan jumlah stok"
+                                    placeholder="Masukkan jumlah salinan"
                                 />
                                 {form.errors.stok ? (
                                     <p className="mt-1 text-xs text-red-600">
@@ -287,69 +331,23 @@ export default function AdminTambahDataAlatPage() {
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-[#1A3263]">
-                                    Kode Alat (otomatis)
+                                    Lokasi Rak *
                                 </label>
                                 <input
                                     type="text"
-                                    value={form.data.kode_alat}
-                                    readOnly
-                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F0F2F8] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-[#F0F2F8] focus:outline-none"
-                                    placeholder="Pilih jurusan untuk melihat kode"
-                                />
-                                <p className="mt-1 text-xs text-[#547792]">
-                                    Dibuat secara otomatis.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className="text-sm font-semibold text-[#1A3263]">
-                                    Ruangan *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={form.data.ruangan}
+                                    value={form.data.lokasi_rak}
                                     onChange={(event) =>
                                         form.setData(
-                                            'ruangan',
+                                            'lokasi_rak',
                                             event.target.value,
                                         )
                                     }
                                     className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                    placeholder="Contoh: Lab CNC - A2"
+                                    placeholder="Contoh: Rak B-03"
                                 />
-                                {form.errors.ruangan ? (
+                                {form.errors.lokasi_rak ? (
                                     <p className="mt-1 text-xs text-red-600">
-                                        {form.errors.ruangan}
-                                    </p>
-                                ) : null}
-                            </div>
-                            <div>
-                                <label className="text-sm font-semibold text-[#1A3263]">
-                                    Denda Keterlambatan (per hari)
-                                </label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={form.data.denda_keterlambatan}
-                                    onChange={(event) =>
-                                        form.setData(
-                                            'denda_keterlambatan',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                    placeholder="Masukkan jumlah dalam rupiah"
-                                />
-                                <p className="mt-1 text-xs text-[#547792]">
-                                    Telat satu hari mengikuti tarif ini.
-                                    Kerusakan atau kehilangan dibahas bersama
-                                    admin.
-                                </p>
-                                {form.errors.denda_keterlambatan ? (
-                                    <p className="mt-1 text-xs text-red-600">
-                                        {form.errors.denda_keterlambatan}
+                                        {form.errors.lokasi_rak}
                                     </p>
                                 ) : null}
                             </div>
@@ -357,7 +355,7 @@ export default function AdminTambahDataAlatPage() {
 
                         <div>
                             <label className="text-sm font-semibold text-[#1A3263]">
-                                Kondisi Alat Sebelum Dipinjam *
+                                Kondisi Buku Sebelum Dipinjam *
                             </label>
                             <textarea
                                 value={form.data.kondisi_alat}
@@ -368,7 +366,7 @@ export default function AdminTambahDataAlatPage() {
                                     )
                                 }
                                 rows={3}
-                                placeholder="Jelaskan kondisi alat sebelum dipinjam"
+                                placeholder="Jelaskan kondisi buku sebelum dipinjam"
                                 className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
                             />
                             {form.errors.kondisi_alat ? (
@@ -380,7 +378,7 @@ export default function AdminTambahDataAlatPage() {
 
                         <div>
                             <label className="text-sm font-semibold text-[#1A3263]">
-                                Deskripsi Alat
+                                Deskripsi Buku / Sinopsis Buku
                             </label>
                             <textarea
                                 value={form.data.deskripsi}
@@ -391,7 +389,7 @@ export default function AdminTambahDataAlatPage() {
                                     )
                                 }
                                 rows={4}
-                                placeholder="Tambahkan catatan teknis atau kegunaan alat"
+                                placeholder="Tuliskan ringkasan isi buku"
                                 className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
                             />
                             {form.errors.deskripsi ? (
@@ -414,25 +412,30 @@ export default function AdminTambahDataAlatPage() {
 
                         <div className="space-y-2">
                             <p className="text-sm font-semibold text-[#1A3263]">
-                                Status Publikasi *
+                                Status Buku *
                             </p>
                             <div className="grid grid-cols-2 gap-3">
                                 {statusOptions.map(({ value, label }) => (
                                     <label
                                         key={value}
                                         className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
-                                            form.data.status === value
+                                            form.data.status_buku === value
                                                 ? 'border-[#1A3263] bg-[#EEF2FF] text-[#1A3263]'
                                                 : 'border-[#E8E2DB] text-[#547792]'
                                         }`}
                                     >
                                         <input
                                             type="radio"
-                                            name="status"
+                                            name="status_buku"
                                             value={value}
-                                            checked={form.data.status === value}
+                                            checked={
+                                                form.data.status_buku === value
+                                            }
                                             onChange={() =>
-                                                form.setData('status', value)
+                                                form.setData(
+                                                    'status_buku',
+                                                    value,
+                                                )
                                             }
                                             className="size-4 accent-[#1A3263]"
                                         />
@@ -440,16 +443,40 @@ export default function AdminTambahDataAlatPage() {
                                     </label>
                                 ))}
                             </div>
-                            {form.errors.status ? (
+                            {form.errors.status_buku ? (
                                 <p className="text-xs text-red-600">
-                                    {form.errors.status}
+                                    {form.errors.status_buku}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-semibold text-[#1A3263]">
+                                Denda Jika Telat (per hari)
+                            </label>
+                            <input
+                                type="number"
+                                min={0}
+                                value={form.data.denda_keterlambatan}
+                                onChange={(event) =>
+                                    form.setData(
+                                        'denda_keterlambatan',
+                                        event.target.value,
+                                    )
+                                }
+                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
+                                placeholder="Masukkan jumlah dalam rupiah"
+                            />
+                            {form.errors.denda_keterlambatan ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {form.errors.denda_keterlambatan}
                                 </p>
                             ) : null}
                         </div>
 
                         <div>
                             <p className="text-sm font-semibold text-[#1A3263]">
-                                Gambar Pratinjau
+                                Upload Cover Buku
                             </p>
                             <p className="text-xs text-[#547792]">
                                 Klik tombol di bawah untuk membuka galeri foto.

@@ -142,7 +142,7 @@ export default function PenggunaDaftarPeminjamanPage() {
                         Daftar Peminjaman
                     </h1>
                     <p className="mt-1 text-sm text-[#547792]">
-                        Pantau status peminjaman dan pastikan alat sudah
+                        Pantau status peminjaman dan pastikan buku sudah
                         dikembalikan tepat waktu.
                     </p>
                 </div>
@@ -165,7 +165,7 @@ export default function PenggunaDaftarPeminjamanPage() {
                                 <tr className="bg-[#E8E2DB]">
                                     <th className="px-4 py-4">No</th>
                                     <th className="px-4 py-4">Aksi</th>
-                                    <th className="px-4 py-4">Nama Alat</th>
+                                    <th className="px-4 py-4">Nama Buku</th>
                                     <th className="px-4 py-4">Jumlah</th>
                                     <th className="px-4 py-4">Tanggal</th>
                                     <th className="px-4 py-4">Denda / Hari</th>
@@ -186,7 +186,7 @@ export default function PenggunaDaftarPeminjamanPage() {
                                             onChange={(e) =>
                                                 setSearchTerm(e.target.value)
                                             }
-                                            placeholder="Cari nama alat..."
+                                            placeholder="Cari nama buku..."
                                             className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-3 py-2 text-xs"
                                         />
                                     </th>

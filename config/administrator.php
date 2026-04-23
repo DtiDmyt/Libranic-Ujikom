@@ -1,6 +1,6 @@
 <?php
 
 return [
-    'roles' => ['admin', 'petugas'],
+    'roles' => ['admin', 'peminjam'],
     'statuses' => ['aktif', 'nonaktif'],
 ];

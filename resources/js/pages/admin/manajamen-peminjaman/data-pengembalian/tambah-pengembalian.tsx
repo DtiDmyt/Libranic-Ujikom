@@ -206,7 +206,7 @@ export default function AdminTambahPengembalianPage() {
                                 Informasi Peminjam
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Cari nama peminjam atau alat, lalu pilih
+                                Cari nama peminjam atau buku, lalu pilih
                                 peminjaman yang ingin dikembalikan.
                             </p>
                         </div>
@@ -221,7 +221,7 @@ export default function AdminTambahPengembalianPage() {
                                 onChange={(event) =>
                                     setBorrowerSearch(event.target.value)
                                 }
-                                placeholder="Cari peminjam atau alat..."
+                                placeholder="Cari peminjam atau buku..."
                                 className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
                                 disabled={!hasLoans}
                             />
@@ -289,15 +289,15 @@ export default function AdminTambahPengembalianPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-[#1A3263]">
-                                Info Alat
+                                Info Buku
                             </label>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <InfoField
-                                    label="Nama Alat"
+                                    label="Nama Buku"
                                     value={selectedLoan?.alat_nama}
                                 />
                                 <InfoField
-                                    label="Kode Alat"
+                                    label="Kode Buku"
                                     value={selectedLoan?.kode_alat}
                                 />
                             </div>
@@ -322,7 +322,7 @@ export default function AdminTambahPengembalianPage() {
                                 Detail Pengembalian
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Catat kondisi alat, sisipkan lampiran jika perlu
+                                Catat kondisi buku dan unggah lampiran bukti
                                 agar evaluasi lebih mudah.
                             </p>
                         </div>
@@ -401,12 +401,13 @@ export default function AdminTambahPengembalianPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-[#1A3263]">
-                                Lampiran (opsional)
+                                Lampiran Bukti *
                             </label>
                             <input
                                 type="file"
                                 ref={fileInputRef}
                                 accept="image/*"
+                                required
                                 onChange={handleFileChange}
                                 className="text-xs text-[#1A3263]"
                             />

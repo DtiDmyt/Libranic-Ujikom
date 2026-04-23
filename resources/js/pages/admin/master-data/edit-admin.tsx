@@ -19,6 +19,10 @@ type AdminPayload = {
     name: string;
     email: string;
     account_role: AccountRoleOption;
+    phone?: string | null;
+    role?: string | null;
+    kelas?: string | null;
+    identitas?: string | null;
     status: 'aktif' | 'nonaktif';
 };
 
@@ -44,6 +48,11 @@ export default function AdminEditAdministratorPage() {
         email: user.email,
         password: '',
         account_role: user.account_role,
+        phone: user.phone ?? '',
+        role: (user.role as AdminCredentialFormFields['role']) ?? '',
+        kelas: user.kelas ?? '',
+        identitas: user.identitas ?? '',
+        password_confirmation: '',
         status: user.status,
     });
 
@@ -82,7 +91,7 @@ export default function AdminEditAdministratorPage() {
                             Edit Administrator
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Perbarui informasi akun administrator atau petugas.
+                            Perbarui informasi akun administrator atau peminjam.
                         </p>
                     </div>
                     <Link
@@ -121,7 +130,8 @@ export default function AdminEditAdministratorPage() {
                         <div className="rounded-2xl bg-[#F8F6F1] p-4 text-sm text-[#547792]">
                             Pastikan untuk menginformasikan pengguna jika
                             password diganti. Akses akan mengikuti role terbaru
-                            yang dipilih.
+                            yang dipilih, termasuk data peminjam jika role
+                            berubah.
                         </div>
                     </div>
                 </div>

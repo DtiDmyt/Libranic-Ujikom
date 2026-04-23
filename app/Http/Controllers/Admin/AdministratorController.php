@@ -62,7 +62,7 @@ class AdministratorController extends Controller
             'aktif' => (clone $baseQuery)->where('status', 'aktif')->count(),
             'nonaktif' => (clone $baseQuery)->where('status', 'nonaktif')->count(),
             'admin' => (clone $baseQuery)->where('account_role', 'admin')->count(),
-            'petugas' => (clone $baseQuery)->where('account_role', 'petugas')->count(),
+            'peminjam' => (clone $baseQuery)->where('account_role', 'peminjam')->count(),
         ];
 
         return Inertia::render('admin/master-data/administrator', [
@@ -84,15 +84,17 @@ class AdministratorController extends Controller
     public function store(StoreAdministratorRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $isBorrower = $data['account_role'] === 'peminjam';
 
         User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'account_role' => $data['account_role'],
             'status' => 'aktif',
-            'role' => 'guru',
-            'kelas' => null,
-            'identitas' => null,
+            'phone' => $isBorrower ? ($data['phone'] ?? null) : null,
+            'role' => $isBorrower ? ($data['role'] ?? null) : null,
+            'kelas' => $isBorrower ? ($data['kelas'] ?? null) : null,
+            'identitas' => $isBorrower ? ($data['identitas'] ?? null) : null,
             'password' => Hash::make($data['password']),
         ]);
 
@@ -122,11 +124,16 @@ class AdministratorController extends Controller
         $this->ensureManageable($administrator);
 
         $data = $request->validated();
+        $isBorrower = $data['account_role'] === 'peminjam';
 
         $payload = [
             'name' => $data['name'],
             'email' => $data['email'],
             'account_role' => $data['account_role'],
+            'phone' => $isBorrower ? ($data['phone'] ?? null) : null,
+            'role' => $isBorrower ? ($data['role'] ?? null) : null,
+            'kelas' => $isBorrower ? ($data['kelas'] ?? null) : null,
+            'identitas' => $isBorrower ? ($data['identitas'] ?? null) : null,
         ];
 
         if (! empty($data['password'])) {
@@ -213,7 +220,7 @@ class AdministratorController extends Controller
      */
     private function availableRoles(): array
     {
-        return config('administrator.roles', ['admin', 'petugas']);
+        return config('administrator.roles', ['admin', 'peminjam']);
     }
 
     /**

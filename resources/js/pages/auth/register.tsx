@@ -39,7 +39,7 @@ export default function Register() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(store(), {
+        post(store.url(), {
             onSuccess: () => {
                 Swal.fire({
                     icon: 'success',
@@ -73,7 +73,7 @@ export default function Register() {
     return (
         <AuthLayout
             title="Buat Akun Baru"
-            description="Masukkan data diri Anda untuk membuat akun Prestito."
+            description="Masukkan data diri Anda untuk membuat akun Libranic."
         >
             <Head title="Daftar" />
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -97,16 +97,42 @@ export default function Register() {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="phone">No. Telepon (Opsional)</Label>
+                        <Label htmlFor="phone">No. Telepon</Label>
                         <Input
                             id="phone"
                             type="tel"
+                            required
                             tabIndex={2}
                             autoComplete="tel"
                             name="phone"
                             value={data.phone}
                             onChange={(e) => setData('phone', e.target.value)}
+                            onInvalid={(e) => {
+                                const input = e.currentTarget;
+
+                                if (input.validity.valueMissing) {
+                                    input.setCustomValidity(
+                                        'Nomor telepon wajib diisi.',
+                                    );
+                                    return;
+                                }
+
+                                if (input.validity.patternMismatch) {
+                                    input.setCustomValidity(
+                                        'Format nomor telepon salah. Nomor harus diawali 08 dan hanya berisi angka.',
+                                    );
+                                    return;
+                                }
+
+                                input.setCustomValidity('');
+                            }}
+                            onInput={(e) => {
+                                e.currentTarget.setCustomValidity('');
+                            }}
                             className={filledInputClasses}
+                            pattern="^08[0-9]{8,13}$"
+                            inputMode="numeric"
+                            maxLength={15}
                             placeholder="Contoh: 081234567890"
                         />
                         <InputError message={errors.phone} />

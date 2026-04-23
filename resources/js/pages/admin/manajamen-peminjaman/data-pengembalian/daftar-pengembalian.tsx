@@ -46,7 +46,9 @@ type ReturnRow = {
     batas_peminjaman?: string | null;
     tanggal_dikembalikan?: string | null;
     status: ReturnStatus;
-    catatan_petugas?: string | null;
+    catatan_admin?: string | null;
+    lampiran_url?: string | null;
+    lampiran_name?: string | null;
     telat_hari?: number | null;
     total_denda?: number | null;
 };
@@ -123,7 +125,7 @@ const renderNote = (item: ReturnRow) => {
     }
 
     if (item.status === 'rusak' || item.status === 'hilang') {
-        return item.catatan_petugas?.trim() || 'Catatan belum diisi';
+        return item.catatan_admin?.trim() || 'Catatan belum diisi';
     }
 
     return '-';
@@ -234,7 +236,7 @@ export default function AdminDataPengembalianPage() {
     const beginStatusEdit = (item: ReturnRow) => {
         setEditingStatusId(item.pengembalian_id);
         setPendingStatus(item.status);
-        setPendingNote(item.catatan_petugas ?? '');
+        setPendingNote(item.catatan_admin ?? '');
     };
 
     const cancelStatusEdit = () => {
@@ -262,7 +264,7 @@ export default function AdminDataPengembalianPage() {
                 `/admin/data-pengembalian/pengembalian/${item.pengembalian_id}/status`,
                 {
                     status: pendingStatus,
-                    catatan_petugas: requiresNote ? trimmedNote : null,
+                    catatan_admin: requiresNote ? trimmedNote : null,
                 },
             );
             Swal.fire('Berhasil', 'Status pengembalian diperbarui.', 'success');
@@ -376,7 +378,7 @@ export default function AdminDataPengembalianPage() {
                     </div>
                     <p className="mt-1 text-sm text-[#547792]">
                         Pantau pengembalian dengan status pemeriksaan serta
-                        catat tanggal ketika pengguna menyerahkan alat.
+                        catat tanggal ketika pengguna menyerahkan buku.
                     </p>
                 </div>
 
@@ -802,19 +804,42 @@ export default function AdminDataPengembalianPage() {
                                 {renderStatusBadge(detailReturn.status)}
                             </div>
                             <div>
+                                <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                    Bukti Foto
+                                </p>
+                                {detailReturn.lampiran_url ? (
+                                    <a
+                                        href={detailReturn.lampiran_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="mt-2 block overflow-hidden rounded-2xl border border-[#E8E2DB] bg-[#F8FAFC]"
+                                    >
+                                        <img
+                                            src={detailReturn.lampiran_url}
+                                            alt={
+                                                detailReturn.lampiran_name
+                                                    ? `Bukti pengembalian ${detailReturn.lampiran_name}`
+                                                    : 'Bukti pengembalian'
+                                            }
+                                            className="h-64 w-full object-cover"
+                                        />
+                                        <div className="px-4 py-3 text-xs text-[#547792]">
+                                            {detailReturn.lampiran_name ??
+                                                'Lihat file bukti pengembalian'}
+                                        </div>
+                                    </a>
+                                ) : (
+                                    <p className="mt-1 text-sm text-[#547792]">
+                                        Bukti foto belum tersedia.
+                                    </p>
+                                )}
+                            </div>
+                            <div>
                                 <p className="text-xs font-semibold text-[#547792] uppercase">
                                     Catatan
                                 </p>
                                 <p className="mt-1 text-sm text-[#1A3263]">
                                     {renderNote(detailReturn)}
-                                </p>
-                            </div>
-                            <div className="bg-[#F8FAFC] px-4 py-3 text-xs font-semibold text-[#1A3263]">
-                                <p>
-                                    <span className="font-semibold">
-                                        Loan ID:
-                                    </span>{' '}
-                                    {detailReturn.loan_id ?? '-'}
                                 </p>
                             </div>
                         </div>

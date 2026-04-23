@@ -15,7 +15,7 @@ class BulkUpdateStatusDaftarBarangRequest extends FormRequest
     {
         return [
             'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:daftarbarang,id'],
+            'ids.*' => ['integer', 'exists:daftar_buku,id'],
             'status' => ['required', 'in:publik,draft'],
         ];
     }

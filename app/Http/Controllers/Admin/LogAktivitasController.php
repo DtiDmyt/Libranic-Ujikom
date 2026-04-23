@@ -40,12 +40,12 @@ class LogAktivitasController extends Controller
             });
 
         $staffUsers = $activeUsers
-            ->filter(fn(array $user) => in_array($user['role_slug'], ['admin', 'petugas'], true))
+            ->filter(fn(array $user) => in_array($user['role_slug'], ['admin'], true))
             ->values()
             ->all();
 
         $borrowerUsers = $activeUsers
-            ->reject(fn(array $user) => in_array($user['role_slug'], ['admin', 'petugas'], true))
+            ->reject(fn(array $user) => in_array($user['role_slug'], ['admin'], true))
             ->values()
             ->all();
 
@@ -129,7 +129,6 @@ class LogAktivitasController extends Controller
     {
         return match ($role) {
             'admin' => 'Administrator',
-            'petugas' => 'Petugas',
             'peminjam' => 'Peminjam',
             default => $role,
         };

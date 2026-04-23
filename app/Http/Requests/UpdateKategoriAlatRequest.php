@@ -16,7 +16,7 @@ class UpdateKategoriAlatRequest extends FormRequest
         $id = $this->route('kategoriAlat')?->id ?? $this->route('id');
 
         return [
-            'nama' => ['required', 'string', 'max:255', 'unique:kategori_alat,nama,' . $id],
+            'nama' => ['required', 'string', 'max:255', 'unique:kategori_buku,nama,' . $id],
         ];
     }
 }

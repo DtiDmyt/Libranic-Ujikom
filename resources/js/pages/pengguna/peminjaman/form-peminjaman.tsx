@@ -11,6 +11,7 @@ type BorrowerInfo = {
     nama: string;
     nis_nip: string;
     kelas: string;
+    phone: string;
 };
 
 type SelectedItem = {
@@ -20,6 +21,8 @@ type SelectedItem = {
     lokasi: string;
     stok: number;
     denda_keterlambatan: number;
+    kategori_buku: string;
+    is_buku_pelajaran: boolean;
 };
 
 type DateDefaults = {
@@ -32,12 +35,11 @@ type LoanFormFields = {
     jumlah_pinjam: string;
     tanggal_pinjam: string;
     tanggal_kembali: string;
-    keperluan: string;
 };
 
 type PageProps = SharedData & {
     borrower: BorrowerInfo;
-    alat: SelectedItem;
+    buku: SelectedItem;
     defaultDates?: DateDefaults;
     maxBorrowPerUser?: number;
 };
@@ -133,7 +135,7 @@ function InfoField({ label, value }: InfoFieldProps) {
 export default function PenggunaFormPeminjamanPage() {
     const {
         borrower,
-        alat,
+        buku,
         defaultDates,
         maxBorrowPerUser = 2,
     } = usePage<PageProps>().props;
@@ -153,11 +155,10 @@ export default function PenggunaFormPeminjamanPage() {
     );
 
     const form = useForm<LoanFormFields>({
-        alat_id: alat.id,
+        alat_id: buku.id,
         jumlah_pinjam: '1',
         tanggal_pinjam: initialStart,
         tanggal_kembali: initialEnd,
-        keperluan: '',
     });
 
     const maxReturnDate = useMemo(() => {
@@ -168,8 +169,9 @@ export default function PenggunaFormPeminjamanPage() {
     }, [form.data.tanggal_pinjam, today]);
 
     const dendaPerHariLabel = currencyFormatter.format(
-        alat.denda_keterlambatan ?? 0,
+        buku.denda_keterlambatan ?? 0,
     );
+    const isBukuPelajaran = buku.is_buku_pelajaran;
 
     const [quantityError, setQuantityError] = useState<string | null>(null);
     const [dateError, setDateError] = useState<string | null>(null);
@@ -186,11 +188,11 @@ export default function PenggunaFormPeminjamanPage() {
             setQuantityError('Minimal 1 unit.');
             return;
         }
-        if (numeric > maxBorrowPerUser) {
+        if (!isBukuPelajaran && numeric > maxBorrowPerUser) {
             setQuantityError(`Maksimal ${maxBorrowPerUser} unit per peminjam.`);
             return;
         }
-        if (numeric > alat.stok) {
+        if (numeric > buku.stok) {
             setQuantityError('Jumlah melebihi stok tersedia.');
             return;
         }
@@ -285,11 +287,7 @@ export default function PenggunaFormPeminjamanPage() {
         });
     };
 
-    const disableSubmit =
-        form.processing ||
-        !form.data.keperluan ||
-        !!quantityError ||
-        !!dateError;
+    const disableSubmit = form.processing || !!quantityError || !!dateError;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -304,7 +302,7 @@ export default function PenggunaFormPeminjamanPage() {
                             Permohonan Peminjaman
                         </p>
                         <h1 className="mt-2 text-3xl font-bold text-[#1A3263]">
-                            Form Peminjaman Alat
+                            Form Peminjaman Buku
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
                             Isi detail kebutuhanmu. Semua data identitas sudah
@@ -327,9 +325,7 @@ export default function PenggunaFormPeminjamanPage() {
                                 Pengaturan Peminjaman
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Atur jumlah, jadwal, dan keperluanmu. Jumlah
-                                pinjam juga menjadi referensi jumlah gambar
-                                maksimal (2 per orang).
+                                Atur jumlah dan jadwal peminjamanmu.
                             </p>
                         </div>
 
@@ -342,7 +338,11 @@ export default function PenggunaFormPeminjamanPage() {
                                 <input
                                     type="number"
                                     min={1}
-                                    max={maxBorrowPerUser}
+                                    max={
+                                        isBukuPelajaran
+                                            ? undefined
+                                            : maxBorrowPerUser
+                                    }
                                     value={form.data.jumlah_pinjam}
                                     onChange={(event) =>
                                         handleJumlahChange(event.target.value)
@@ -351,7 +351,9 @@ export default function PenggunaFormPeminjamanPage() {
                                 />
                             </div>
                             <p className="mt-1 text-xs text-[#547792]">
-                                Maksimal {maxBorrowPerUser} unit per peminjam.
+                                {isBukuPelajaran
+                                    ? 'Kategori Buku Pelajaran tidak memiliki batas maksimal jumlah pinjam.'
+                                    : `Maksimal ${maxBorrowPerUser} unit per peminjam.`}
                             </p>
                             {quantityError ? (
                                 <p className="mt-1 text-xs text-red-600">
@@ -417,30 +419,33 @@ export default function PenggunaFormPeminjamanPage() {
                         </div>
 
                         <div>
-                            <label className="text-sm font-semibold text-[#1A3263]">
-                                Keperluan Peminjaman
-                            </label>
-                            <textarea
-                                rows={4}
-                                value={form.data.keperluan}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'keperluan',
-                                        event.target.value,
-                                    )
-                                }
-                                placeholder="Contoh: Praktik modul Elektronika Industri."
-                                className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                            />
-                            <p className="mt-1 text-xs text-[#547792]">
-                                Jelaskan tujuan peminjaman secara singkat dan
-                                jelas.
-                            </p>
-                            {form.errors.keperluan ? (
-                                <p className="mt-1 text-xs text-red-600">
-                                    {form.errors.keperluan}
+                            <div className="h-px bg-[#F0E7DB]" />
+
+                            <div className="mt-6">
+                                <p className="text-base font-semibold text-[#1A3263]">
+                                    Detail Buku Dipilih
                                 </p>
-                            ) : null}
+                                <p className="text-xs text-[#547792]">
+                                    Pastikan informasi buku sesuai sebelum
+                                    mengirim permohonan.
+                                </p>
+                            </div>
+
+                            <div className="mt-4 grid gap-4 md:grid-cols-2">
+                                <InfoField
+                                    label="Nama Buku"
+                                    value={buku.nama_alat}
+                                />
+                                <InfoField
+                                    label="Kode Buku"
+                                    value={buku.kode_alat}
+                                />
+                                <InfoField label="Lokasi" value={buku.lokasi} />
+                                <InfoField
+                                    label="Stok Tersedia"
+                                    value={`${buku.stok} unit`}
+                                />
+                            </div>
                         </div>
                     </section>
 
@@ -450,7 +455,7 @@ export default function PenggunaFormPeminjamanPage() {
                                 Identitas Peminjam
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Data otomatis dari akun Prestito.
+                                Data otomatis dari akun Libranic.
                             </p>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
@@ -460,35 +465,10 @@ export default function PenggunaFormPeminjamanPage() {
                                 value={borrower.nis_nip}
                             />
                             <InfoField label="Kelas" value={borrower.kelas} />
+                            <InfoField label="No. WA" value={borrower.phone} />
                         </div>
 
                         <div className="h-px bg-[#F0E7DB]" />
-
-                        <div>
-                            <p className="text-base font-semibold text-[#1A3263]">
-                                Detail Alat Dipilih
-                            </p>
-                            <p className="text-xs text-[#547792]">
-                                Pastikan informasi alat sesuai sebelum mengirim
-                                permohonan.
-                            </p>
-                        </div>
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <InfoField
-                                label="Nama Alat"
-                                value={alat.nama_alat}
-                            />
-                            <InfoField
-                                label="Kode Alat"
-                                value={alat.kode_alat}
-                            />
-                            <InfoField label="Lokasi" value={alat.lokasi} />
-                            <InfoField
-                                label="Stok Tersedia"
-                                value={`${alat.stok} unit`}
-                            />
-                        </div>
 
                         <button
                             type="button"

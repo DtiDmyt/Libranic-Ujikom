@@ -50,7 +50,7 @@ export default function AlertPernyataan({
                 </div>
 
                 <p className="mt-4 text-sm text-[#547792]">
-                    Dengan mengajukan peminjaman alat ini, saya menyatakan
+                    Dengan mengajukan peminjaman buku ini, saya menyatakan
                     bahwa:
                 </p>
 
@@ -72,9 +72,9 @@ export default function AlertPernyataan({
                             aria-hidden="true"
                         />
                         <span>
-                            Apabila alat rusak atau hilang, maka akan dibahas
-                            dan ditindaklanjuti bersama petugas sesuai ketentuan
-                            sekolah.
+                            Apabila buku rusak atau hilang, maka akan dibahas
+                            dan ditindaklanjuti bersama administrator sesuai
+                            ketentuan sekolah.
                         </span>
                     </li>
                     <li className="flex items-start gap-3">
@@ -83,7 +83,7 @@ export default function AlertPernyataan({
                             aria-hidden="true"
                         />
                         <span>
-                            Saya bertanggung jawab penuh atas alat selama masa
+                            Saya bertanggung jawab penuh atas buku selama masa
                             peminjaman.
                         </span>
                     </li>

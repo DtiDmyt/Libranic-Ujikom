@@ -17,8 +17,8 @@ import {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Alat', href: '/admin/alat' },
-    { title: 'Kategori Alat', href: '/admin/alat/kategori' },
+    { title: 'Manajemen Buku', href: '/admin/alat' },
+    { title: 'Kategori Buku', href: '/admin/alat/kategori' },
 ];
 
 type CategoryRow = {
@@ -150,14 +150,14 @@ export default function AdminKategoriAlatPage() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Kategori Alat" />
+            <Head title="Kategori Buku" />
             <div className="bg-[#E8E2DB] p-6">
                 <div className="mb-6 space-y-1">
                     <p className="text-xs font-semibold tracking-[0.2em] text-[#547792] uppercase">
                         Manajemen Inventaris
                     </p>
                     <h1 className="text-2xl font-bold text-[#1A3263]">
-                        Kategori Alat
+                        Kategori Buku
                     </h1>
                 </div>
 
@@ -189,7 +189,7 @@ export default function AdminKategoriAlatPage() {
                                         form.setData('nama', e.target.value)
                                     }
                                     className="w-full rounded-xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] transition placeholder:text-slate-400 focus:border-[#3B68D5] focus:bg-white focus:outline-none"
-                                    placeholder="Contoh: Perangkat Pendukung"
+                                    placeholder="Contoh: Fiksi"
                                     disabled={form.processing}
                                 />
                                 {form.errors.nama ? (

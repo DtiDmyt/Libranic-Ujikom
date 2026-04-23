@@ -34,7 +34,6 @@ class LoginResponse implements LoginResponseContract
         return match ($role) {
             'admin',
             'administrator' => route('admin.dashboard'),
-            'petugas' => route('petugas.dashboard'),
             default => route('dashboard'),
         };
     }

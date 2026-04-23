@@ -27,7 +27,7 @@ type LoanHistoryRow = {
     pengembalian?: {
         kondisi?: string | null;
         catatan?: string | null;
-        catatan_petugas?: string | null;
+        catatan_admin?: string | null;
         lampiran_url?: string | null;
     };
 };
@@ -107,7 +107,7 @@ const currencyFormatter = new Intl.NumberFormat('id-ID', {
 
 const resolveNote = (item: LoanHistoryRow): string => {
     const status = normalizeReturnStatus(item.return_status);
-    const noteFromOfficer = item.pengembalian?.catatan_petugas?.trim();
+    const noteFromOfficer = item.pengembalian?.catatan_admin?.trim();
 
     if (status === 'tepat waktu') {
         return '-';
@@ -190,7 +190,7 @@ export default function PenggunaRiwayatPeminjamanPage() {
                             Riwayat Peminjaman
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Rekam kembali pengembalian alat yang sudah selesai
+                            Rekam kembali pengembalian buku yang sudah selesai
                             untuk memantau status akhir.
                         </p>
                     </div>

@@ -14,10 +14,6 @@ use App\Http\Controllers\Pengguna\DaftarAlatController;
 use App\Http\Controllers\Pengguna\DashboardController as PenggunaDashboardController;
 use App\Http\Controllers\Pengguna\PeminjamanController as PenggunaPeminjamanController;
 use App\Http\Controllers\Pengguna\PengembalianController;
-use App\Http\Controllers\Petugas\DashboardController as PetugasDashboardController;
-use App\Http\Controllers\Petugas\LaporanController;
-use App\Http\Controllers\Petugas\PeminjamanController as PetugasPeminjamanController;
-use App\Http\Controllers\Petugas\PengembalianController as PetugasPengembalianController;
 
 Route::get('/', function () {
     if (! Auth::check()) {
@@ -28,7 +24,6 @@ Route::get('/', function () {
 
     $routeName = match ($role) {
         'admin' => 'admin.dashboard',
-        'petugas' => 'petugas.dashboard',
         default => 'dashboard',
     };
 
@@ -129,23 +124,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('peminjaman', function () {
             return redirect()->route('admin.data-peminjaman.peminjaman.index');
         });
-    });
-
-    Route::middleware('role:petugas')->prefix('petugas')->name('petugas.')->group(function () {
-        Route::get('dashboard', [PetugasDashboardController::class, 'index'])->name('dashboard');
-
-        Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
-            Route::get('/', [PetugasPeminjamanController::class, 'index'])->name('index');
-            Route::patch('{loan}/status', [PetugasPeminjamanController::class, 'updateStatus'])->name('status');
-        });
-
-        Route::prefix('pengembalian')->name('pengembalian.')->group(function () {
-            Route::get('/', [PetugasPengembalianController::class, 'index'])->name('index');
-            Route::get('{pengembalian}', [PetugasPengembalianController::class, 'show'])->name('show');
-            Route::patch('{pengembalian}/status', [PetugasPengembalianController::class, 'updateStatus'])->name('status');
-        });
-
-        Route::get('laporan', [LaporanController::class, 'index'])->name('laporan');
     });
 });
 

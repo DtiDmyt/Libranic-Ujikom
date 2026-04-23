@@ -13,7 +13,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    private const DEFAULT_JURUSAN = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
+    private const DEFAULT_CATEGORIES = ['GURU', 'PPLG', 'ANM', 'BCF', 'TO', 'TPFL', 'LAINNYA'];
 
     public function index(): Response
     {
@@ -87,21 +87,20 @@ class DashboardController extends Controller
     private function resolveJurusanStats(): Collection
     {
         $loans = Peminjaman::query()
-            ->with('pengembalian:id,peminjaman_id,status')
+            ->with(['pengembalian:id,peminjaman_id,status', 'user:id,role,kelas'])
             ->get(['kelas', 'id']);
 
         $grouped = $loans
-            ->groupBy(fn(Peminjaman $loan) => $this->normalizeJurusan($loan->kelas))
+            ->groupBy(fn(Peminjaman $loan) => $this->resolveCategory($loan))
             ->map(fn(Collection $items) => [
                 'peminjaman' => $items->count(),
                 'terlambat' => $items->filter(fn(Peminjaman $loan) => $loan->pengembalian?->status === 'telat')->count(),
             ]);
 
-        $ordered = collect(self::DEFAULT_JURUSAN)
-            ->merge($grouped->keys()->diff(self::DEFAULT_JURUSAN))
+        $ordered = collect(self::DEFAULT_CATEGORIES)
+            ->merge($grouped->keys()->diff(self::DEFAULT_CATEGORIES))
             ->unique()
-            ->values()
-            ->filter(fn(string $label) => $label !== 'UMUM');
+            ->values();
 
         return $ordered->map(function (string $label) use ($grouped) {
             $payload = $grouped->get($label, [
@@ -119,7 +118,7 @@ class DashboardController extends Controller
 
     private function fallbackJurusan(): array
     {
-        $defaultLabel = self::DEFAULT_JURUSAN[0];
+        $defaultLabel = self::DEFAULT_CATEGORIES[0];
 
         return [
             'name' => $defaultLabel,
@@ -128,16 +127,24 @@ class DashboardController extends Controller
         ];
     }
 
-    private function normalizeJurusan(?string $kelas): string
+    private function resolveCategory(Peminjaman $loan): string
     {
-        if (! $kelas) {
-            return 'UMUM';
+        $userRole = strtolower(trim((string) ($loan->user?->role ?? '')));
+
+        if ($userRole === 'guru') {
+            return 'GURU';
         }
 
-        $parts = preg_split('/\s+/', strtoupper(trim($kelas)));
+        $kelas = strtoupper(trim((string) ($loan->kelas ?: $loan->user?->kelas ?: '')));
+
+        if ($kelas === '') {
+            return 'LAINNYA';
+        }
+
+        $parts = preg_split('/\s+/', $kelas);
 
         if (! $parts) {
-            return 'UMUM';
+            return 'LAINNYA';
         }
 
         foreach ($parts as $part) {
@@ -145,15 +152,15 @@ class DashboardController extends Controller
                 continue;
             }
 
-            if (in_array($part, self::DEFAULT_JURUSAN, true)) {
+            if (in_array($part, self::DEFAULT_CATEGORIES, true)) {
                 return $part;
             }
 
             if (preg_match('/^[A-Z]{2,}$/', $part)) {
-                return $part;
+                return in_array($part, self::DEFAULT_CATEGORIES, true) ? $part : 'LAINNYA';
             }
         }
 
-        return strtoupper($parts[0]) ?: 'UMUM';
+        return 'LAINNYA';
     }
 }

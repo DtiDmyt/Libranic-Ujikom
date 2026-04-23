@@ -14,7 +14,7 @@ class BulkUpdateAdministratorStatusRequest extends FormRequest
 
     public function rules(): array
     {
-        $roles = config('administrator.roles', ['admin', 'petugas']);
+        $roles = config('administrator.roles', ['admin', 'peminjam']);
         $statuses = config('administrator.statuses', ['aktif', 'nonaktif']);
 
         return [

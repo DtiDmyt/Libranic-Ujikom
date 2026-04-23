@@ -107,7 +107,7 @@ class PeminjamanController extends Controller
     {
         $validated = $request->validate([
             'peminjam_id' => ['required', 'exists:users,id'],
-            'daftarbarang_id' => ['required', 'exists:daftarbarang,id'],
+            'daftarbarang_id' => ['required', 'exists:daftar_buku,id'],
             'kategori_alat_id' => ['nullable', 'integer'],
             'kelas' => ['nullable', 'string', 'max:255'],
             'tanggal_pinjam' => ['required', 'date'],
@@ -153,7 +153,7 @@ class PeminjamanController extends Controller
     {
         $validated = $request->validate([
             'peminjam_id' => ['required', 'exists:users,id'],
-            'daftarbarang_id' => ['required', 'exists:daftarbarang,id'],
+            'daftarbarang_id' => ['required', 'exists:daftar_buku,id'],
             'kategori_alat_id' => ['nullable', 'integer'],
             'kelas' => ['nullable', 'string', 'max:255'],
             'tanggal_pinjam' => ['required', 'date'],
@@ -554,7 +554,7 @@ class PeminjamanController extends Controller
             [
                 'tanggal' => Carbon::today()->subDays(2)->toIso8601String(),
                 'catatan' => 'Perpanjangan satu hari karena ujian',
-                'petugas' => 'Admin Susi',
+                'admin' => 'Admin Susi',
             ],
         ];
     }

@@ -18,8 +18,6 @@ use Inertia\Response;
 
 class DaftarBarangController extends Controller
 {
-    private const JURUSAN_OPTIONS = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
-
     public function index(Request $request): Response
     {
         $filters = [
@@ -78,16 +76,27 @@ class DaftarBarangController extends Controller
 
         return Inertia::render('admin/alat/tambah-data', [
             'categories' => $categories,
-            'kodePreviews' => $this->kodePreviews(),
+            'kodePreviews' => $this->kodePreviewsByCategory($categories),
         ]);
     }
 
     public function store(StoreDaftarBarangRequest $request): RedirectResponse
     {
         $data = $request->validated();
+
+        $data['judul_buku'] = $data['judul_buku'] ?? ($data['nama_alat'] ?? '');
+        $data['nama_alat'] = $data['judul_buku'];
+        $data['lokasi_rak'] = $data['lokasi_rak'] ?? ($data['ruangan'] ?? '');
+        $data['ruangan'] = $data['lokasi_rak'];
+        $data['kategori_jurusan'] = $data['kategori_jurusan'] ?? 'UMUM';
+        $data['status_buku'] = $data['status_buku']
+            ?? (($data['status'] ?? 'publik') === 'publik' ? 'tersedia' : 'dipinjam');
+        $data['status'] = $data['status_buku'] === 'tersedia' ? 'publik' : 'draft';
+
         $data['stok'] = (int) ($data['stok'] ?? 0);
         $data['denda_keterlambatan'] = (int) ($data['denda_keterlambatan'] ?? 0);
-        $data['kode_alat'] = $this->generateKodeAlat($data['kategori_jurusan']);
+        $data['tahun_terbit'] = isset($data['tahun_terbit']) ? (int) $data['tahun_terbit'] : null;
+        $data['kode_alat'] = $this->generateKodeBuku((int) $data['kategori_alat_id']);
         $data['deskripsi'] = $data['deskripsi'] ?? null;
         $data['gambar_path'] = $this->storeImage($request->file('gambar'));
 
@@ -107,15 +116,22 @@ class DaftarBarangController extends Controller
         return Inertia::render('admin/alat/edit-data', [
             'item' => [
                 'id' => $daftarBarang->id,
+                'judul_buku' => $daftarBarang->judul_buku ?? $daftarBarang->nama_alat,
                 'nama_alat' => $daftarBarang->nama_alat,
+                'penulis' => $daftarBarang->penulis,
+                'penerbit' => $daftarBarang->penerbit,
+                'tahun_terbit' => $daftarBarang->tahun_terbit,
                 'kategori_jurusan' => $daftarBarang->kategori_jurusan,
                 'kategori_alat_id' => $daftarBarang->kategori_alat_id,
                 'stok' => (int) $daftarBarang->stok,
                 'kode_alat' => $daftarBarang->kode_alat,
+                'lokasi_rak' => $daftarBarang->lokasi_rak ?? $daftarBarang->ruangan,
                 'ruangan' => $daftarBarang->ruangan,
                 'denda_keterlambatan' => $daftarBarang->denda_keterlambatan,
                 'kondisi_alat' => $daftarBarang->kondisi_alat,
                 'deskripsi' => $daftarBarang->deskripsi,
+                'status_buku' => $daftarBarang->status_buku
+                    ?? ($daftarBarang->status === 'publik' ? 'tersedia' : 'dipinjam'),
                 'status' => $daftarBarang->status,
                 'gambar_url' => $daftarBarang->gambar_url,
             ],
@@ -126,8 +142,19 @@ class DaftarBarangController extends Controller
     public function update(UpdateDaftarBarangRequest $request, DaftarBarang $daftarBarang): RedirectResponse
     {
         $data = $request->validated();
+
+        $data['judul_buku'] = $data['judul_buku'] ?? ($data['nama_alat'] ?? $daftarBarang->nama_alat);
+        $data['nama_alat'] = $data['judul_buku'];
+        $data['lokasi_rak'] = $data['lokasi_rak'] ?? ($data['ruangan'] ?? $daftarBarang->ruangan);
+        $data['ruangan'] = $data['lokasi_rak'];
+        $data['kategori_jurusan'] = $data['kategori_jurusan'] ?? ($daftarBarang->kategori_jurusan ?: 'UMUM');
+        $data['status_buku'] = $data['status_buku']
+            ?? (($data['status'] ?? $daftarBarang->status) === 'publik' ? 'tersedia' : 'dipinjam');
+        $data['status'] = $data['status_buku'] === 'tersedia' ? 'publik' : 'draft';
+
         $data['stok'] = (int) ($data['stok'] ?? 0);
         $data['denda_keterlambatan'] = (int) ($data['denda_keterlambatan'] ?? 0);
+        $data['tahun_terbit'] = isset($data['tahun_terbit']) ? (int) $data['tahun_terbit'] : null;
         $data['deskripsi'] = $data['deskripsi'] ?? null;
 
         $data['gambar_path'] = $this->storeImage(
@@ -177,17 +204,20 @@ class DaftarBarangController extends Controller
             ->with('success', 'Status data alat berhasil diperbarui.');
     }
 
-    private function kodePreviews(): array
+    private function kodePreviewsByCategory($categories): array
     {
-        return collect(self::JURUSAN_OPTIONS)
-            ->mapWithKeys(fn(string $jurusan) => [$jurusan => $this->generateKodeAlat($jurusan)])
+        return $categories
+            ->mapWithKeys(fn(KategoriAlat $category) => [(string) $category->id => $this->generateKodeBuku((int) $category->id)])
             ->all();
     }
 
-    private function generateKodeAlat(string $jurusan): string
+    private function generateKodeBuku(int $kategoriId): string
     {
-        $jurusanCode = strtoupper($jurusan);
-        $prefix = sprintf('ALT-%s-', $jurusanCode);
+        $categoryName = KategoriAlat::query()->whereKey($kategoriId)->value('nama') ?? 'UMUM';
+        $normalized = preg_replace('/[^A-Z0-9]/', '', strtoupper((string) $categoryName));
+        $categoryCode = str_pad((string) substr($normalized ?: 'BKU', 0, 3), 3, 'X');
+        $yearCode = now()->format('y');
+        $prefix = sprintf('BKU-%s-%s-', $categoryCode, $yearCode);
 
         $latestCode = DaftarBarang::where('kode_alat', 'like', $prefix . '%')
             ->orderByDesc('kode_alat')

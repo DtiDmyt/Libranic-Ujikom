@@ -192,7 +192,7 @@ export default function AdminEditPengembalianPage() {
                             Edit Pengembalian
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Sesuaikan tanggal dan kondisi alat agar catatan
+                            Sesuaikan tanggal dan kondisi buku agar catatan
                             tetap akurat.
                         </p>
                     </div>
@@ -364,13 +364,13 @@ export default function AdminEditPengembalianPage() {
                                 value={loan.jumlah_pinjam}
                             />
                             <InfoField
-                                label="Kode Alat"
+                                label="Kode Buku"
                                 value={loan.kode_alat}
                             />
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                             <InfoField
-                                label="Nama Alat"
+                                label="Nama Buku"
                                 value={loan.alat_nama}
                             />
                             <InfoField label="Ruangan" value={loan.ruangan} />

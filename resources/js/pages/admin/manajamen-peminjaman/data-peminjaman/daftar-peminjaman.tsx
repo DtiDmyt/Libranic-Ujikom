@@ -44,6 +44,7 @@ type PageProps = SharedData & {
     items: LoanRow[];
     filters: {
         search?: string | null;
+        status?: LoanStatus | 'semua' | null;
         kondisi: LoanCondition | 'semua';
     };
     borrowers: BorrowerOption[];
@@ -252,7 +253,7 @@ export default function AdminDataPeminjamanPage() {
         search?: string;
         status?: 'semua' | LoanStatus;
     }) => {
-        const query: Record<string, unknown> = {
+        const query = {
             search: overrides?.search ?? searchTerm,
             status: overrides?.status ?? statusFilter,
         };
@@ -342,22 +343,19 @@ export default function AdminDataPeminjamanPage() {
             if (!result.isConfirmed) return;
 
             alertLoading('Sedang menghapus data terpilih...');
-            router.delete(
-                '/admin/data-peminjaman/peminjaman/bulk-delete',
-                { ids: selected },
-                {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        setSelected([]);
-                        closeAlert();
-                        alertSuccess('Data terpilih berhasil dihapus.');
-                    },
-                    onError: () => {
-                        closeAlert();
-                        alertError('Gagal menghapus data terpilih.');
-                    },
+            router.delete('/admin/data-peminjaman/peminjaman/bulk-delete', {
+                data: { ids: selected },
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected([]);
+                    closeAlert();
+                    alertSuccess('Data terpilih berhasil dihapus.');
                 },
-            );
+                onError: () => {
+                    closeAlert();
+                    alertError('Gagal menghapus data terpilih.');
+                },
+            });
         });
     };
 
@@ -397,24 +395,18 @@ export default function AdminDataPeminjamanPage() {
             if (!result.isConfirmed) return;
 
             alertLoading('Sedang menghapus data...');
-            router.delete(
-                `/admin/data-peminjaman/peminjaman/${id}`,
-                {},
-                {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        setSelected((prev) =>
-                            prev.filter((item) => item !== id),
-                        );
-                        closeAlert();
-                        alertSuccess('Data peminjaman berhasil dihapus.');
-                    },
-                    onError: () => {
-                        closeAlert();
-                        alertError('Gagal menghapus data.');
-                    },
+            router.delete(`/admin/data-peminjaman/peminjaman/${id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setSelected((prev) => prev.filter((item) => item !== id));
+                    closeAlert();
+                    alertSuccess('Data peminjaman berhasil dihapus.');
                 },
-            );
+                onError: () => {
+                    closeAlert();
+                    alertError('Gagal menghapus data.');
+                },
+            });
         });
     };
 
@@ -454,17 +446,10 @@ export default function AdminDataPeminjamanPage() {
                 `/admin/data-peminjaman/peminjaman/${id}/status`,
                 payload,
             );
-            setLocalItems((prev) =>
-                prev.map((item) =>
-                    item.id === id
-                        ? {
-                              ...item,
-                              status,
-                          }
-                        : item,
-                ),
-            );
             cancelStatusEdit();
+            router.reload({
+                only: ['items', 'filters', 'borrowers'],
+            });
             closeAlert();
             alertSuccess(successMessage);
         } catch (error) {
@@ -541,7 +526,7 @@ export default function AdminDataPeminjamanPage() {
                         </h1>
                     </div>
                     <p className="mt-1 text-sm text-[#547792]">
-                        Pantau seluruh transaksi peminjaman alat yang sedang
+                        Pantau seluruh transaksi peminjaman buku yang sedang
                         berjalan ataupun selesai.
                     </p>
                 </div>
@@ -945,12 +930,6 @@ export default function AdminDataPeminjamanPage() {
                                               detailLoan.return_status,
                                           )
                                         : '-'}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="font-semibold">Kondisi Barang</p>
-                                <p className="mt-1 rounded-2xl bg-[#F8FAFC] px-4 py-3 text-xs font-semibold text-[#1A3263]">
-                                    {detailLoan.kondisi_barang}
                                 </p>
                             </div>
                         </div>

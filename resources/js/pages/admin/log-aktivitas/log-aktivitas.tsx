@@ -148,8 +148,8 @@ export default function AdminLogAktivitasPage() {
                                     Aktivitas Staf
                                 </h1>
                                 {renderUserPanel(
-                                    'Admin & Petugas',
-                                    'Pantau aktivitas admin dan petugas yang sedang bertugas.',
+                                    'Administrator',
+                                    'Pantau aktivitas administrator yang sedang bertugas.',
                                     staffUsers,
                                     staffPagination,
                                 )}

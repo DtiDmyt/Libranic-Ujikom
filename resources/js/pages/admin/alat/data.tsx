@@ -26,7 +26,6 @@ type Status = 'publik' | 'draft';
 type ItemRow = {
     id: number;
     nama_alat: string;
-    kategori_jurusan: string;
     kategori_alat?: string | null;
     ruangan: string;
     status: Status;
@@ -50,15 +49,14 @@ type PageProps = SharedData & {
         search: string;
         status: Status | 'semua';
         kategori: number | null;
-        jurusan: string | null;
     };
     categories: CategoryOption[];
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Alat', href: '/admin/alat' },
-    { title: 'Daftar Alat', href: '/admin/alat/data' },
+    { title: 'Manajemen Buku', href: '/admin/alat' },
+    { title: 'Daftar Buku', href: '/admin/alat/data' },
 ];
 
 const statusLabels: Record<Status, string> = {
@@ -71,8 +69,6 @@ const statusStyles: Record<Status, string> = {
     draft: 'bg-amber-100 text-amber-700 border border-amber-200',
 };
 
-const jurusanOptions = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
-
 const rupiahFormatter = new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
@@ -83,11 +79,7 @@ const formatCurrency = (value: number) => rupiahFormatter.format(value);
 
 export default function AdminDataAlatPage() {
     const { items, filters, categories } = usePage<PageProps>().props;
-    const {
-        status: statusFilter,
-        kategori: kategoriFilter,
-        jurusan: jurusanFilter,
-    } = filters;
+    const { status: statusFilter, kategori: kategoriFilter } = filters;
 
     const [selected, setSelected] = useState<number[]>([]);
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
@@ -132,9 +124,8 @@ export default function AdminDataAlatPage() {
         search?: string;
         status?: Status | 'semua';
         kategori?: number | null;
-        jurusan?: string | null;
     }) => {
-        const query: Record<string, unknown> = {
+        const query: Record<string, string | number> = {
             search: overrides?.search ?? searchTerm,
             status: overrides?.status ?? statusFilter,
         };
@@ -146,15 +137,6 @@ export default function AdminDataAlatPage() {
 
         if (kategoriValue) {
             query.kategori = kategoriValue;
-        }
-
-        const jurusanValue =
-            overrides && 'jurusan' in overrides
-                ? overrides.jurusan
-                : jurusanFilter;
-
-        if (jurusanValue) {
-            query.jurusan = jurusanValue;
         }
 
         router.get('/admin/alat/data', query, {
@@ -257,11 +239,11 @@ export default function AdminDataAlatPage() {
                 onSuccess: () => {
                     setSelected((prev) => prev.filter((item) => item !== id));
                     closeAlert();
-                    alertSuccess('Data alat berhasil dihapus.');
+                    alertSuccess('Data buku berhasil dihapus.');
                 },
                 onError: () => {
                     closeAlert();
-                    alertError('Gagal menghapus data alat.');
+                    alertError('Gagal menghapus data buku.');
                 },
             });
         });
@@ -275,17 +257,17 @@ export default function AdminDataAlatPage() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Daftar Alat" />
+            <Head title="Daftar Buku" />
             <div className="space-y-6 bg-[#F5F1EA] p-6">
                 <div>
                     <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
-                        Manajemen Alat
+                        Manajemen Buku
                     </p>
                     <h1 className="mt-2 text-3xl font-bold text-[#1A3263]">
-                        Daftar Alat
+                        Daftar Buku
                     </h1>
                     <p className="mt-1 text-sm text-[#547792]">
-                        Kelola seluruh inventaris alat lengkap dengan kategori
+                        Kelola seluruh inventaris buku lengkap dengan kategori
                         dan status publikasi.
                     </p>
                 </div>
@@ -358,13 +340,10 @@ export default function AdminDataAlatPage() {
                                     </th>
                                     <th className="px-2 py-4">No</th>
                                     <th className="px-4 py-4">Aksi</th>
-                                    <th className="px-4 py-4">Nama Alat</th>
-                                    <th className="px-4 py-4">
-                                        Kategori Jurusan
-                                    </th>
-                                    <th className="px-4 py-4">Kategori Alat</th>
+                                    <th className="px-4 py-4">Nama Buku</th>
+                                    <th className="px-4 py-4">Kategori Buku</th>
                                     <th className="px-4 py-4">Stok</th>
-                                    <th className="px-4 py-4">Kode Alat</th>
+                                    <th className="px-4 py-4">Kode Buku</th>
                                     <th className="px-4 py-4">Status</th>
                                 </tr>
                                 <tr className="bg-white text-[11px] font-normal tracking-normal text-[#547792] uppercase">
@@ -381,31 +360,8 @@ export default function AdminDataAlatPage() {
                                                 )
                                             }
                                             className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-4 py-2 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
-                                            placeholder="Cari nama alat..."
+                                            placeholder="Cari nama buku..."
                                         />
-                                    </th>
-                                    <th className="px-4 py-3">
-                                        <select
-                                            value={jurusanFilter ?? ''}
-                                            onChange={(event) =>
-                                                visitWithFilters({
-                                                    jurusan: event.target.value
-                                                        ? event.target.value
-                                                        : null,
-                                                })
-                                            }
-                                            className="w-full rounded-2xl border border-[#D7DFEE] bg-white px-3 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:outline-none"
-                                        >
-                                            <option value="">Semua</option>
-                                            {jurusanOptions.map((jurusan) => (
-                                                <option
-                                                    key={jurusan}
-                                                    value={jurusan}
-                                                >
-                                                    {jurusan}
-                                                </option>
-                                            ))}
-                                        </select>
                                     </th>
                                     <th className="px-4 py-3">
                                         <select
@@ -523,9 +479,6 @@ export default function AdminDataAlatPage() {
                                                 </p>
                                             </td>
                                             <td className="px-4 py-4 text-[#1A3263]">
-                                                {item.kategori_jurusan}
-                                            </td>
-                                            <td className="px-4 py-4 text-[#1A3263]">
                                                 {item.kategori_alat ?? '-'}
                                             </td>
                                             <td className="px-4 py-4 text-[#1A3263]">
@@ -550,10 +503,10 @@ export default function AdminDataAlatPage() {
                                 {items.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={9}
+                                            colSpan={8}
                                             className="px-6 py-10 text-center text-sm text-[#547792]"
                                         >
-                                            Tidak ada data alat.
+                                            Tidak ada data buku.
                                         </td>
                                     </tr>
                                 ) : null}
@@ -588,7 +541,7 @@ export default function AdminDataAlatPage() {
                         <div className="flex items-center justify-between border-b border-[#E8E2DB] px-6 py-4">
                             <div>
                                 <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
-                                    Detail Alat
+                                    Detail Buku
                                 </p>
                                 <h2 className="text-xl font-bold text-[#1A3263]">
                                     {detailItem.nama_alat}
@@ -615,7 +568,7 @@ export default function AdminDataAlatPage() {
                             <div className="grid gap-4 md:grid-cols-2">
                                 <p>
                                     <span className="font-semibold">
-                                        Kode Alat:
+                                        Kode Buku:
                                     </span>{' '}
                                     {detailItem.kode_alat ?? '-'}
                                 </p>
@@ -645,13 +598,7 @@ export default function AdminDataAlatPage() {
                             <div className="grid gap-4 md:grid-cols-2">
                                 <p>
                                     <span className="font-semibold">
-                                        Kategori Jurusan:
-                                    </span>{' '}
-                                    {detailItem.kategori_jurusan}
-                                </p>
-                                <p>
-                                    <span className="font-semibold">
-                                        Kategori Alat:
+                                        Kategori Buku:
                                     </span>{' '}
                                     {detailItem.kategori_alat ?? '-'}
                                 </p>

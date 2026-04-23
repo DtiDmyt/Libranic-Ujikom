@@ -80,43 +80,63 @@ class PeminjamanController extends Controller
     public function create(Request $request): Response
     {
         $user = Auth::user();
-        $itemId = (int) $request->query('alat');
-        $item = DaftarBarang::findOrFail($itemId);
+        $itemId = (int) ($request->query('alat') ?? $request->query('buku'));
+        $item = DaftarBarang::with('kategoriAlat:id,nama')->findOrFail($itemId);
+        $isBukuPelajaran = str_contains(
+            mb_strtolower((string) ($item->kategoriAlat?->nama ?? ''), 'UTF-8'),
+            'pelajaran'
+        );
 
         return Inertia::render('pengguna/peminjaman/form-peminjaman', [
             'borrower' => [
                 'nama' => $user->name,
                 'nis_nip' => $user->identitas ?? $user->email,
                 'kelas' => $user->kelas ?? '-',
+                'phone' => $user->phone ?? '-',
             ],
-            'alat' => [
+            'buku' => [
                 'id' => $item->id,
                 'nama_alat' => $item->nama_alat,
                 'kode_alat' => $item->kode_alat ?? '-',
                 'lokasi' => $item->ruangan ?? '-',
                 'stok' => max(0, (int) ($item->stok ?? 0)),
                 'denda_keterlambatan' => max(0, (int) ($item->denda_keterlambatan ?? 0)),
+                'kategori_buku' => $item->kategoriAlat?->nama ?? '-',
+                'is_buku_pelajaran' => $isBukuPelajaran,
             ],
             'defaultDates' => [
                 'tanggal_pinjam' => Carbon::today()->toDateString(),
                 'tanggal_kembali' => Carbon::today()->addDays(6)->toDateString(),
             ],
-            'maxBorrowPerUser' => Config::get('prestito.max_borrow_per_user', 2),
+            'maxBorrowPerUser' => Config::get('libranic.max_borrow_per_user', 2),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'alat_id' => 'required|exists:daftarbarang,id',
+            'alat_id' => 'required|exists:daftar_buku,id',
             'jumlah_pinjam' => 'required|integer|min:1',
             'tanggal_pinjam' => 'required|date',
             'tanggal_kembali' => 'required|date|after_or_equal:tanggal_pinjam',
-            'keperluan' => 'required|string|max:450',
+            'keperluan' => 'nullable|string|max:450',
         ]);
 
-        $item = DaftarBarang::findOrFail($data['alat_id']);
+        $item = DaftarBarang::with('kategoriAlat:id,nama')->findOrFail($data['alat_id']);
         $user = $request->user();
+        $maxBorrowPerUser = (int) Config::get('libranic.max_borrow_per_user', 2);
+        $isBukuPelajaran = str_contains(
+            mb_strtolower((string) ($item->kategoriAlat?->nama ?? ''), 'UTF-8'),
+            'pelajaran'
+        );
+
+        if (!$isBukuPelajaran && (int) $data['jumlah_pinjam'] > $maxBorrowPerUser) {
+            return Redirect::back()
+                ->withErrors([
+                    'jumlah_pinjam' => "Maksimal {$maxBorrowPerUser} unit untuk kategori ini.",
+                ])
+                ->withInput();
+        }
 
         if (!$item->hasSufficientStock((int) $data['jumlah_pinjam'])) {
             return Redirect::back()
@@ -135,7 +155,7 @@ class PeminjamanController extends Controller
             'jumlah_pinjam' => $data['jumlah_pinjam'],
             'tanggal_pinjam' => $data['tanggal_pinjam'],
             'tanggal_kembali' => $data['tanggal_kembali'],
-            'keperluan' => $data['keperluan'],
+            'keperluan' => $data['keperluan'] ?? '-',
             'status' => 'menunggu',
             'denda_per_hari' => $item->denda_keterlambatan ?? 0,
         ]);
@@ -207,7 +227,7 @@ class PeminjamanController extends Controller
                 'pengembalian' => [
                     'kondisi' => $pengembalian?->kondisi,
                     'catatan' => $pengembalian?->catatan,
-                    'catatan_petugas' => $pengembalian?->catatan_petugas,
+                    'catatan_admin' => $pengembalian?->catatan_admin,
                     'lampiran_url' => $pengembalian?->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
                 ],
             ];
@@ -252,7 +272,7 @@ class PeminjamanController extends Controller
                 'tanggal_pengembalian' => $pengembalian?->tanggal_pengembalian?->toDateString(),
                 'kondisi' => $pengembalian?->kondisi,
                 'catatan' => $pengembalian?->catatan,
-                'catatan_petugas' => $pengembalian?->catatan_petugas,
+                'catatan_admin' => $pengembalian?->catatan_admin,
                 'lampiran_url' => $pengembalian?->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
             ],
             'return_status' => $returnStatus,

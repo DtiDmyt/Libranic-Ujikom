@@ -15,7 +15,7 @@ class DeleteKategoriAlatRequest extends FormRequest
     {
         return [
             'ids' => ['required', 'array', 'min:1'],
-            'ids.*' => ['integer', 'exists:kategori_alat,id'],
+            'ids.*' => ['integer', 'exists:kategori_buku,id'],
         ];
     }
 }

@@ -14,7 +14,7 @@ class StoreKategoriAlatRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nama' => ['required', 'string', 'max:255', 'unique:kategori_alat,nama'],
+            'nama' => ['required', 'string', 'max:255', 'unique:kategori_buku,nama'],
         ];
     }
 }

@@ -157,36 +157,6 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
             },
         ],
     },
-    petugas: {
-        dashboardHref: '/petugas/dashboard',
-        sections: [
-            {
-                title: 'Menu Utama',
-                items: [
-                    {
-                        title: 'Dashboard',
-                        href: '/petugas/dashboard',
-                        icon: LayoutGrid,
-                    },
-                    {
-                        title: 'Data Peminjaman',
-                        href: '/petugas/peminjaman',
-                        icon: ClipboardList,
-                    },
-                    {
-                        title: 'Data Pengembalian',
-                        href: '/petugas/pengembalian',
-                        icon: ClipboardList,
-                    },
-                    {
-                        title: 'Laporan',
-                        href: '/petugas/laporan',
-                        icon: FileSpreadsheet,
-                    },
-                ],
-            },
-        ],
-    },
     peminjam: {
         dashboardHref: '/dashboard',
         sections: [

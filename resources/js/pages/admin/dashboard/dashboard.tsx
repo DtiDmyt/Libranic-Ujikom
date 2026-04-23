@@ -108,9 +108,9 @@ export default function AdminDashboard() {
     const quickStatConfig: QuickStatConfig[] = [
         {
             key: 'totalAlat',
-            label: 'Total Alat',
+            label: 'Total Buku',
             unit: 'unit',
-            description: 'Jumlah alat terkelola sistem',
+            description: 'Jumlah buku terkelola sistem',
             icon: Layers3,
             accent: 'from-[#1A3263] to-[#233D7A]',
             format: (value) => numberFormatter.format(value),
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
         },
         {
             key: 'problematicItems',
-            label: 'Alat Rusak / Habis',
+            label: 'Buku Rusak / Habis',
             unit: 'unit',
             description: 'Memerlukan tindak lanjut',
             icon: TriangleAlert,
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
                         Selamat Datang Kembali! 👋
                     </h1>
                     <p className="text-sm text-slate-600">
-                        Kelola dan monitor seluruh aktivitas peminjaman alat
+                        Kelola dan monitor seluruh aktivitas peminjaman buku
                         dengan mudah
                     </p>
                 </div>
@@ -203,10 +203,10 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                     <div className="relative overflow-hidden rounded-3xl border border-[#1A3263]/10 bg-white p-6 shadow-sm">
                         <p className="text-xs font-semibold tracking-[0.4em] text-[#547792] uppercase">
-                            Statistik per Jurusan
+                            Statistik per Kategori
                         </p>
                         <h2 className="text-lg font-semibold text-[#1A3263]">
-                            Tren peminjaman dan keterlambatan
+                            Tren peminjaman dan keterlambatan per kategori
                         </h2>
                         <PlaceholderPattern className="pointer-events-none absolute inset-0 size-full stroke-[#1A3263]/40 opacity-5" />
                         <div className="relative mt-6 h-72">

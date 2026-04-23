@@ -30,14 +30,14 @@ type DashboardPageProps = SharedData & {
 
 const syaratLines = [
     'Siswa aktif',
-    'Maksimal 2 alat dalam satu peminjaman',
+    'Maksimal 2 buku dalam satu peminjaman',
     'Wajib mengembalikan tepat waktu',
 ];
 
 const dendaLines = [
-    'Tepat waktu & alat baik → Tidak ada denda',
-    'Terlambat → Denda berlaku sesuai ketentuan alat',
-    'Alat rusak/hilang → Akan dibahas bersama',
+    'Tepat waktu & buku baik → Tidak ada denda',
+    'Terlambat → Denda berlaku sesuai ketentuan buku',
+    'Buku rusak/hilang → Akan dibahas bersama',
 ];
 
 export default function PenggunaDashboard() {
@@ -61,7 +61,7 @@ export default function PenggunaDashboard() {
         {
             label: 'Kuota Tersisa',
             value: remainingQuota,
-            description: `Maksimal peminjaman aktif ${maxActiveLoans} alat.`,
+            description: `Maksimal peminjaman aktif ${maxActiveLoans} buku.`,
         },
     ];
 
@@ -78,7 +78,7 @@ export default function PenggunaDashboard() {
                     </h1>
                     <p className="text-sm text-slate-600">
                         Ikuti aturan peminjaman dan pantau keterlambatan setiap
-                        alat yang sedang Anda pegang.
+                        buku yang sedang Anda pegang.
                     </p>
                 </div>
 

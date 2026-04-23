@@ -17,7 +17,7 @@ trait ProfileValidationRules
         return [
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
-            'account_role' => ['nullable', 'string', 'in:admin,petugas,peminjam'],
+            'account_role' => ['nullable', 'string', 'in:admin,peminjam'],
             'role' => ['required', 'string', 'in:murid,guru,lainnya'],
             'kelas' => ['required_if:role,murid', 'nullable', 'string', 'max:100'],
             'phone' => ['nullable', 'string', 'max:20'],

@@ -63,7 +63,7 @@ export default function FormPenolakan({
                         disabled={loading}
                         maxLength={500}
                         className="mt-2 h-32 w-full rounded-2xl border border-[#D7DFEE] px-4 py-3 text-sm text-[#1A3263] placeholder:text-slate-400 focus:border-[#1A3263] focus:outline-none"
-                        placeholder="Contoh: Stok alat terbatas atau jadwal praktik tidak tersedia"
+                        placeholder="Contoh: Stok buku terbatas atau jadwal praktik tidak tersedia"
                     />
                     <p className="mt-1 text-right text-xs text-[#94A3B8]">
                         {reason.trim().length}/500 karakter

@@ -32,6 +32,11 @@ export default function AdminTambahAdministratorPage() {
         email: '',
         password: '',
         account_role: roles[0] ?? 'admin',
+        phone: '',
+        role: '',
+        kelas: '',
+        identitas: '',
+        password_confirmation: '',
     });
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -66,8 +71,9 @@ export default function AdminTambahAdministratorPage() {
                             Tambah Administrator
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Buat akun baru untuk administrator atau petugas
-                            Prestito.
+                            Buat akun administrator atau peminjam. Saat memilih
+                            role peminjam, form akan berubah mengikuti data
+                            pendaftaran pengguna.
                         </p>
                     </div>
                     <Link
@@ -98,7 +104,7 @@ export default function AdminTambahAdministratorPage() {
                                 </p>
                                 <p className="mt-1 text-sm text-[#547792]">
                                     Gunakan password yang kuat dan hanya bagikan
-                                    akun kepada petugas yang tepercaya.
+                                    akun kepada pengguna yang tepercaya.
                                 </p>
                             </div>
                         </div>
@@ -108,8 +114,8 @@ export default function AdminTambahAdministratorPage() {
                                 angka.
                             </li>
                             <li>
-                                Setelah akun dibuat, pengguna dapat mengaktifkan
-                                autentikasi dua faktor.
+                                Untuk role peminjam, lengkapi data role,
+                                identitas, dan kelas jika diperlukan.
                             </li>
                             <li>Role menentukan akses fitur di dashboard.</li>
                         </ul>

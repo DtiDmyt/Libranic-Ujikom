@@ -23,7 +23,7 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
-        $accountRole = fake()->randomElement(['admin', 'petugas', 'peminjam']);
+        $accountRole = fake()->randomElement(['admin', 'peminjam']);
         $role = $accountRole === 'peminjam'
             ? fake()->randomElement(['murid', 'guru', 'lainnya'])
             : null;

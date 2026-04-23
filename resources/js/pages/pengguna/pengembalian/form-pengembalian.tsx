@@ -24,6 +24,7 @@ type ToolInfo = {
 type LoanInfo = {
     id: number;
     jumlah: number;
+    jumlah_pinjam?: number;
     tanggal_pinjam?: string;
     tanggal_kembali?: string;
     keperluan?: string | null;
@@ -160,7 +161,7 @@ export default function PenggunaFormPengembalianPage() {
                 Swal.fire({
                     icon: 'success',
                     title: 'Pengembalian dikirim',
-                    text: 'Terima kasih, pengembalianmu menunggu verifikasi petugas.',
+                    text: 'Terima kasih, pengembalianmu menunggu verifikasi administrator.',
                     timer: 2200,
                     showConfirmButton: false,
                 });
@@ -186,14 +187,14 @@ export default function PenggunaFormPengembalianPage() {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
-                            Pengembalian Alat
+                            Pengembalian Buku
                         </p>
                         <h1 className="mt-2 text-3xl font-bold text-[#1A3263]">
                             Form Pengembalian
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Lengkapi status dan kondisi alat sebelum menyerahkan
-                            kembali ke petugas.
+                            Lengkapi status dan kondisi buku sebelum menyerahkan
+                            kembali ke administrator.
                         </p>
                     </div>
                     <Link
@@ -220,7 +221,7 @@ export default function PenggunaFormPengembalianPage() {
                         <div className="grid gap-4 md:grid-cols-2">
                             <InfoField
                                 label="Jumlah Dipinjam"
-                                value={loan.jumlah}
+                                value={loan.jumlah ?? loan.jumlah_pinjam ?? 0}
                             />
                             <InfoField
                                 label="Tanggal Pinjam"
@@ -246,13 +247,13 @@ export default function PenggunaFormPengembalianPage() {
                                         &gt;
                                     </span>
                                     <span className="inline-flex items-center gap-2 rounded-full border border-[#D1D5DB] px-3 py-1 text-xs font-semibold text-[#1A3263]">
-                                        Menunggu admin / petugas merubah status
+                                        Menunggu admin merubah status
                                     </span>
                                 </div>
                                 <p className="mt-1 text-xs text-[#547792]">
-                                    Admin atau petugas akan menentukan apakah
-                                    pengembalian tepat waktu, telat, rusak, atau
-                                    hilang setelah pengecekan selesai.
+                                    Admin akan menentukan apakah pengembalian
+                                    tepat waktu, telat, rusak, atau hilang
+                                    setelah pengecekan selesai.
                                     {finalStatusEntry
                                         ? ` Status terakhir yang tercatat: ${finalStatusEntry.label}.`
                                         : ''}
@@ -293,7 +294,7 @@ export default function PenggunaFormPengembalianPage() {
                                 }
                                 rows={4}
                                 className="mt-2 w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-3 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                placeholder="Catat keadaan alat, kelengkapan tambahan, atau permintaan khusus..."
+                                placeholder="Catat keadaan buku, kelengkapan tambahan, atau permintaan khusus..."
                             />
                             {form.errors.catatan ? (
                                 <p className="mt-1 text-xs text-red-600">
@@ -304,11 +305,11 @@ export default function PenggunaFormPengembalianPage() {
 
                         <div className="space-y-3">
                             <p className="text-sm font-semibold text-[#1A3263]">
-                                Bukti Foto (opsional)
+                                Bukti Foto *
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Unggah foto kondisi terbaru alat. Format JPG,
-                                PNG, atau WEBP maksimal 2MB.
+                                Unggah foto kondisi terbaru buku. Format JPG,
+                                PNG, atau WEBP maksimal 2MB. Wajib diisi.
                             </p>
                             <div className="space-y-3 rounded-3xl border border-dashed border-[#D7DFEE] bg-[#F8FAFC] p-4">
                                 <button
@@ -325,6 +326,7 @@ export default function PenggunaFormPengembalianPage() {
                                     ref={fileInputRef}
                                     type="file"
                                     accept="image/*"
+                                    required
                                     className="hidden"
                                     onChange={handleFileChange}
                                 />
@@ -365,10 +367,10 @@ export default function PenggunaFormPengembalianPage() {
                     <section className="flex flex-col justify-between space-y-6 rounded-3xl border border-[#E8E2DB] bg-white p-6 shadow-sm">
                         <div>
                             <p className="text-base font-semibold text-[#1A3263]">
-                                Informasi Peminjam & Alat
+                                Informasi Peminjam & Buku
                             </p>
                             <p className="text-xs text-[#547792]">
-                                Pastikan data valid sebelum menyerahkan alat.
+                                Pastikan data valid sebelum menyerahkan buku.
                             </p>
                         </div>
 
@@ -391,11 +393,11 @@ export default function PenggunaFormPengembalianPage() {
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <InfoField
-                                label="Nama Alat"
+                                label="Nama Buku"
                                 value={alat.nama_alat}
                             />
                             <InfoField
-                                label="Kode Alat"
+                                label="Kode Buku"
                                 value={alat.kode_alat}
                             />
                         </div>

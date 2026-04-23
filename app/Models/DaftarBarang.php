@@ -12,18 +12,24 @@ class DaftarBarang extends Model
 {
     use HasFactory;
 
-    protected $table = 'daftarbarang';
+    protected $table = 'daftar_buku';
 
     protected $fillable = [
+        'judul_buku',
         'nama_alat',
+        'penulis',
+        'penerbit',
+        'tahun_terbit',
         'kategori_jurusan',
         'kategori_alat_id',
         'stok',
         'kode_alat',
+        'lokasi_rak',
         'ruangan',
         'denda_keterlambatan',
         'kondisi_alat',
         'deskripsi',
+        'status_buku',
         'status',
         'gambar_path',
     ];
@@ -31,6 +37,7 @@ class DaftarBarang extends Model
     protected $casts = [
         'kategori_alat_id' => 'integer',
         'stok' => 'integer',
+        'tahun_terbit' => 'integer',
         'denda_keterlambatan' => 'integer',
     ];
 
@@ -92,7 +99,7 @@ class DaftarBarang extends Model
                     return null;
                 }
 
-                return Storage::disk('public')->url((string) $path);
+                return Storage::url((string) $path);
             },
         );
     }

@@ -22,7 +22,7 @@ import {
     closeAlert,
 } from '@/lib/alert';
 
-type AccountRole = 'admin' | 'petugas';
+type AccountRole = 'admin' | 'peminjam';
 type Status = 'aktif' | 'nonaktif';
 
 type AdminRow = {
@@ -43,7 +43,7 @@ type Statistics = {
     aktif: number;
     nonaktif: number;
     admin: number;
-    petugas: number;
+    peminjam: number;
 };
 
 type PageProps = SharedData & {
@@ -67,7 +67,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const roleLabels: Record<AccountRole, string> = {
     admin: 'Administrator',
-    petugas: 'Petugas',
+    peminjam: 'Peminjam',
 };
 
 const statusLabels: Record<Status, string> = {
@@ -325,7 +325,11 @@ export default function AdminAdministratorPage() {
             value: statistics.admin,
             accent: 'bg-[#DDE8FF]',
         },
-        { label: 'Petugas', value: statistics.petugas, accent: 'bg-[#E0F2FE]' },
+        {
+            label: 'Peminjam',
+            value: statistics.peminjam,
+            accent: 'bg-[#F3E8FF]',
+        },
         {
             label: 'Status Non Aktif',
             value: statistics.nonaktif,
@@ -346,8 +350,8 @@ export default function AdminAdministratorPage() {
                             Data Administrator
                         </h1>
                         <p className="mt-1 text-sm text-[#547792]">
-                            Kelola akun administrator dan petugas untuk akses
-                            sistem Prestito.
+                            Kelola akun administrator dan peminjam untuk akses
+                            sistem Libranic.
                         </p>
                     </div>
                 </div>

@@ -4,15 +4,25 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
+import DetailBukuModal, { type BookDetailItem } from './detail-buku';
 
 type BorrowableItem = {
     id: number;
+    judul_buku?: string | null;
     nama_alat: string;
+    penulis?: string | null;
+    penerbit?: string | null;
+    tahun_terbit?: number | null;
     lokasi: string;
+    lokasi_rak?: string | null;
     stok?: number | null;
     gambar_url?: string | null;
     status: 'tersedia' | 'habis';
-    kategori_jurusan?: string | null;
+    status_buku?: string | null;
+    kategori_buku?: string | null;
+    denda_keterlambatan?: number | null;
+    kondisi_alat?: string | null;
+    deskripsi?: string | null;
 };
 
 type PageProps = SharedData & {
@@ -21,19 +31,22 @@ type PageProps = SharedData & {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard Pengguna', href: '/dashboard' },
-    { title: 'Daftar Alat', href: '/daftar-alat' },
+    { title: 'Daftar Buku', href: '/daftar-alat' },
 ];
 
 export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedJurusan, setSelectedJurusan] = useState<string>('semua');
+    const [selectedKategori, setSelectedKategori] = useState<string>('semua');
+    const [selectedBook, setSelectedBook] = useState<BookDetailItem | null>(
+        null,
+    );
 
-    // Dynamically get jurusan options from actual data
-    const jurusanOptions = useMemo(() => {
+    // Dynamically get category options from actual data
+    const kategoriOptions = useMemo(() => {
         const unique = new Set(
             items
-                .map((item) => item.kategori_jurusan?.trim())
-                .filter((jurusan): jurusan is string => Boolean(jurusan)),
+                .map((item) => item.kategori_buku?.trim())
+                .filter((kategori): kategori is string => Boolean(kategori)),
         );
         return Array.from(unique).sort();
     }, [items]);
@@ -43,24 +56,28 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
 
         return items.filter((item) => {
             const matchesQuery = normalizedQuery
-                ? [item.nama_alat, item.lokasi, item.kategori_jurusan]
+                ? [
+                      item.nama_alat,
+                      item.lokasi_rak ?? item.lokasi,
+                      item.kategori_buku,
+                  ]
                       .filter((value): value is string => Boolean(value))
                       .some((value) =>
                           value.toLowerCase().includes(normalizedQuery),
                       )
                 : true;
 
-            const matchesJurusan =
-                selectedJurusan === 'semua'
+            const matchesKategori =
+                selectedKategori === 'semua'
                     ? true
-                    : item.kategori_jurusan
+                    : item.kategori_buku
                           ?.trim()
                           .toLowerCase()
-                          .includes(selectedJurusan.toLowerCase());
+                          .includes(selectedKategori.toLowerCase());
 
-            return matchesQuery && matchesJurusan;
+            return matchesQuery && matchesKategori;
         });
-    }, [items, searchTerm, selectedJurusan]);
+    }, [items, searchTerm, selectedKategori]);
 
     const {
         paginatedItems,
@@ -83,12 +100,12 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Daftar Alat" />
+            <Head title="Daftar Buku" />
 
             <div className="space-y-6 bg-[#E8E2DB] p-6">
                 <div>
                     <h1 className="mt-2 text-3xl font-bold text-[#1A3263]">
-                        Daftar Alat
+                        Daftar Buku
                     </h1>
 
                     {/* Search and Filter */}
@@ -126,15 +143,15 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                         <div className="relative">
                             <select
                                 className="min-w-[180px] cursor-pointer appearance-none rounded-full border-0 bg-white/90 px-6 py-4 pr-10 text-sm font-medium text-[#1A3263] shadow-[0_8px_32px_rgba(26,50,99,0.12)] focus:ring-2 focus:ring-[#FAB95B]/40 focus:outline-none"
-                                value={selectedJurusan}
+                                value={selectedKategori}
                                 onChange={(event) =>
-                                    setSelectedJurusan(event.target.value)
+                                    setSelectedKategori(event.target.value)
                                 }
                             >
-                                <option value="semua">Semua Jurusan</option>
-                                {jurusanOptions.map((jurusan) => (
-                                    <option key={jurusan} value={jurusan}>
-                                        {jurusan}
+                                <option value="semua">Semua Kategori</option>
+                                {kategoriOptions.map((kategori) => (
+                                    <option key={kategori} value={kategori}>
+                                        {kategori}
                                     </option>
                                 ))}
                             </select>
@@ -163,20 +180,20 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                 {showEmptyState ? (
                     <div className="rounded-3xl border border-dashed border-[#C8BCB0] bg-white/70 p-10 text-center">
                         <p className="text-base font-semibold text-[#1A3263]">
-                            Belum ada alat yang tersedia.
+                            Belum ada buku yang tersedia.
                         </p>
                         <p className="mt-2 text-sm text-[#547792]">
                             Hubungi administrator jika membutuhkan bantuan
-                            menambahkan data alat.
+                            menambahkan data buku.
                         </p>
                     </div>
                 ) : showFilteredEmptyState ? (
                     <div className="rounded-3xl border border-dashed border-[#547792]/30 bg-white/70 p-10 text-center">
                         <p className="text-base font-semibold text-[#1A3263]">
-                            Tidak ditemukan alat dengan filter tersebut.
+                            Tidak ditemukan buku dengan filter tersebut.
                         </p>
                         <p className="mt-2 text-sm text-[#547792]">
-                            Coba ubah kata kunci pencarian atau pilih jurusan
+                            Coba ubah kata kunci pencarian atau pilih kategori
                             lain.
                         </p>
                     </div>
@@ -185,7 +202,20 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                         {paginatedItems.map((item) => (
                             <article
                                 key={item.id}
-                                className="flex h-full flex-col overflow-hidden rounded-[32px] bg-white shadow-[0_20px_45px_rgba(26,50,99,0.08)] transition hover:-translate-y-1"
+                                role="button"
+                                tabIndex={0}
+                                aria-label={`Lihat detail buku ${item.nama_alat}`}
+                                className="flex h-full cursor-pointer flex-col overflow-hidden rounded-[32px] bg-white shadow-[0_20px_45px_rgba(26,50,99,0.08)] transition hover:-translate-y-1 focus:ring-2 focus:ring-[#FAB95B]/40 focus:outline-none"
+                                onClick={() => setSelectedBook(item)}
+                                onKeyDown={(event) => {
+                                    if (
+                                        event.key === 'Enter' ||
+                                        event.key === ' '
+                                    ) {
+                                        event.preventDefault();
+                                        setSelectedBook(item);
+                                    }
+                                }}
                             >
                                 {/* Gambar */}
                                 <div className="h-48 w-full">
@@ -224,7 +254,7 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                                 {/* Konten */}
                                 <div className="flex flex-1 flex-col justify-between p-6">
                                     <div className="space-y-2">
-                                        {/* Nama Alat */}
+                                        {/* Nama Buku */}
                                         <h2 className="truncate text-xl font-semibold text-[#1A3263]">
                                             {item.nama_alat}
                                         </h2>
@@ -233,7 +263,9 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                                         <p className="truncate text-sm text-[#547792]">
                                             Lokasi:{' '}
                                             <span className="font-medium text-[#1A3263]">
-                                                {item.lokasi || '-'}
+                                                {(item.lokasi_rak ??
+                                                    item.lokasi) ||
+                                                    '-'}
                                             </span>
                                         </p>
 
@@ -242,7 +274,7 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                                             Stok:{' '}
                                             <span className="font-semibold text-[#1A3263]">
                                                 {typeof item.stok === 'number'
-                                                    ? `${item.stok} unit`
+                                                    ? `${item.stok}`
                                                     : 'Tidak tersedia'}
                                             </span>
                                         </p>
@@ -253,14 +285,20 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                                     item.stok <= 0 ? (
                                         <button
                                             type="button"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                            }}
                                             className="mt-6 flex w-full cursor-not-allowed items-center justify-center rounded-2xl bg-[#547792]/40 px-6 py-3 text-sm font-semibold tracking-widest text-[#1A3263]/60 uppercase"
                                             disabled
                                         >
-                                            Stok Habis
+                                            Dipinjam
                                         </button>
                                     ) : (
                                         <Link
                                             href={`/peminjaman/form?alat=${item.id}`}
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                            }}
                                             className="mt-6 flex w-full items-center justify-center rounded-2xl bg-[#FAB95B] px-6 py-3 text-sm font-semibold tracking-widest text-[#1A3263] uppercase transition hover:bg-[#f7a63b]"
                                         >
                                             Pinjam
@@ -271,6 +309,12 @@ export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {
                         ))}
                     </div>
                 )}
+
+                <DetailBukuModal
+                    open={selectedBook !== null}
+                    item={selectedBook}
+                    onClose={() => setSelectedBook(null)}
+                />
 
                 {!showEmptyState && !showFilteredEmptyState && (
                     <div className="mt-6">

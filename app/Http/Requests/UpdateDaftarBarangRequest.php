@@ -14,15 +14,21 @@ class UpdateDaftarBarangRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nama_alat' => ['required', 'string', 'max:255'],
-            'kategori_jurusan' => ['required', 'string', 'max:255'],
-            'kategori_alat_id' => ['required', 'integer', 'exists:kategori_alat,id'],
+            'judul_buku' => ['required_without:nama_alat', 'string', 'max:255'],
+            'nama_alat' => ['nullable', 'string', 'max:255'],
+            'penulis' => ['required', 'string', 'max:255'],
+            'penerbit' => ['required', 'string', 'max:255'],
+            'tahun_terbit' => ['required', 'integer', 'between:1900,3000'],
+            'kategori_jurusan' => ['nullable', 'string', 'max:255'],
+            'kategori_alat_id' => ['required', 'integer', 'exists:kategori_buku,id'],
             'stok' => ['required', 'integer', 'min:0'],
-            'ruangan' => ['required', 'string', 'max:255'],
+            'lokasi_rak' => ['required_without:ruangan', 'string', 'max:255'],
+            'ruangan' => ['nullable', 'string', 'max:255'],
             'denda_keterlambatan' => ['nullable', 'integer', 'min:0'],
             'kondisi_alat' => ['required', 'string'],
             'deskripsi' => ['nullable', 'string'],
-            'status' => ['required', 'in:publik,draft'],
+            'status_buku' => ['required_without:status', 'in:tersedia,dipinjam,rusak,hilang'],
+            'status' => ['nullable', 'in:publik,draft'],
             'gambar' => ['nullable', 'image', 'max:2048'],
         ];
     }

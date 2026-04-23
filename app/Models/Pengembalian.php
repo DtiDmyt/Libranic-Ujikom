@@ -18,7 +18,7 @@ class Pengembalian extends Model
         'tanggal_pengembalian',
         'kondisi',
         'catatan',
-        'catatan_petugas',
+        'catatan_admin',
         'lampiran_path',
         'status',
         'telat_hari',

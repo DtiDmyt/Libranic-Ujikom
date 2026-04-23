@@ -33,7 +33,7 @@ class PengembalianController extends Controller
             'tanggal_pengembalian' => ['required', 'date'],
             'kondisi' => ['required', 'in:baik,rusak,hilang'],
             'catatan' => ['nullable', 'string', 'max:1000'],
-            'lampiran' => ['nullable', 'image', 'max:2048'],
+            'lampiran' => ['required', 'image', 'max:2048'],
         ]);
 
         $loan = Peminjaman::with('pengembalian')->findOrFail($validated['peminjaman_id']);
@@ -99,7 +99,7 @@ class PengembalianController extends Controller
                 'tanggal_pengembalian' => $pengembalian->tanggal_pengembalian?->toDateString(),
                 'kondisi' => $pengembalian->kondisi ?? 'baik',
                 'catatan' => $pengembalian->catatan,
-                'catatan_petugas' => $pengembalian->catatan_petugas,
+                'catatan_admin' => $pengembalian->catatan_admin,
                 'status' => $pengembalian->status,
                 'lampiran_url' => $pengembalian->lampiran_path ? Storage::url($pengembalian->lampiran_path) : null,
                 'lampiran_name' => $pengembalian->lampiran_path ? basename($pengembalian->lampiran_path) : null,
@@ -177,7 +177,9 @@ class PengembalianController extends Controller
                     'batas_peminjaman' => $loan->tanggal_kembali?->toDateString(),
                     'tanggal_dikembalikan' => $return->tanggal_pengembalian?->toDateString(),
                     'status' => $return->status ?? 'menunggu',
-                    'catatan_petugas' => $return->catatan_petugas,
+                    'catatan_admin' => $return->catatan_admin,
+                    'lampiran_url' => $return->lampiran_path ? Storage::url($return->lampiran_path) : null,
+                    'lampiran_name' => $return->lampiran_path ? basename($return->lampiran_path) : null,
                     'telat_hari' => $return->telat_hari,
                     'total_denda' => $return->total_denda,
                 ];
@@ -227,11 +229,11 @@ class PengembalianController extends Controller
     {
         $data = $request->validate([
             'status' => ['required', 'in:menunggu,tepat waktu,telat,rusak,hilang'],
-            'catatan_petugas' => ['nullable', 'string', 'max:1000'],
+            'catatan_admin' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $requiresNote = in_array($data['status'], ['rusak', 'hilang'], true);
-        $note = $data['catatan_petugas'] ?? null;
+        $note = $data['catatan_admin'] ?? null;
 
         if ($requiresNote && (! $note || trim((string) $note) === '')) {
             return response()->json([
@@ -241,7 +243,7 @@ class PengembalianController extends Controller
 
         $previousStatus = $pengembalian->status ?? 'menunggu';
         $pengembalian->status = $data['status'];
-        $pengembalian->catatan_petugas = $requiresNote ? $note : null;
+        $pengembalian->catatan_admin = $requiresNote ? $note : null;
         $pengembalian->save();
 
         $releaseStatuses = ['tepat waktu', 'telat'];
@@ -294,7 +296,7 @@ class PengembalianController extends Controller
 
             $return->status = $data['status'];
             if (! $requiresNote) {
-                $return->catatan_petugas = null;
+                $return->catatan_admin = null;
             }
             $return->save();
 

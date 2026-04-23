@@ -427,12 +427,6 @@ export default function AdminRiwayatPeminjamanPage() {
                                     </span>{' '}
                                     {formatDate(detailRow.tanggal_pengembalian)}
                                 </p>
-                                <p>
-                                    <span className="font-semibold">
-                                        ID Peminjaman:
-                                    </span>{' '}
-                                    {detailRow.loan_id ?? '-'}
-                                </p>
                             </div>
                             <div>
                                 <p className="font-semibold">
