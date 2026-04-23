@@ -3,12 +3,19 @@ import { useEffect, useState } from 'react';
 import { usePagination } from '@/hooks/use-pagination';
 import { Pagination } from '@/components/ui/pagination';
 import {
+    BookOpenText,
     CheckCircle2,
+    CalendarDays,
     Eye,
+    DollarSign,
+    FileText,
     Layers3,
+    MapPin,
     PencilLine,
     Plus,
+    Tag,
     Trash2,
+    X,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import AppLayout from '@/layouts/app-layout';
@@ -76,6 +83,37 @@ const rupiahFormatter = new Intl.NumberFormat('id-ID', {
 });
 
 const formatCurrency = (value: number) => rupiahFormatter.format(value);
+
+const formatDate = (value?: string | null) =>
+    value
+        ? new Intl.DateTimeFormat('id-ID', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+          }).format(new Date(value))
+        : '-';
+
+function DetailRow({
+    icon: Icon,
+    label,
+    value,
+}: {
+    icon: typeof BookOpenText;
+    label: string;
+    value: string;
+}) {
+    return (
+        <div className="border-b border-[#F0E7DB] pb-3 last:border-b-0 last:pb-0">
+            <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.2em] text-[#8E9FC4] uppercase">
+                <Icon className="h-4 w-4" />
+                {label}
+            </div>
+            <p className="mt-1 text-sm leading-6 font-semibold text-[#1A3263]">
+                {value}
+            </p>
+        </div>
+    );
+}
 
 export default function AdminDataAlatPage() {
     const { items, filters, categories } = usePage<PageProps>().props;
@@ -532,97 +570,114 @@ export default function AdminDataAlatPage() {
                 </div>
             </div>
             {detailItem ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A3263]/55 p-4 backdrop-blur-sm">
                     <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur"
+                        className="absolute inset-0"
                         onClick={closeDetailModal}
                     />
-                    <div className="relative max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-[#E8E2DB] px-6 py-4">
+                    <div
+                        className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-[#E8E2DB] bg-white shadow-[0_30px_80px_rgba(26,50,99,0.24)]"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="flex items-start justify-between gap-4 border-b border-[#F0E7DB] px-5 py-4 sm:px-6">
                             <div>
-                                <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                <p className="text-[11px] font-semibold tracking-[0.25em] text-[#547792] uppercase">
                                     Detail Buku
                                 </p>
-                                <h2 className="text-xl font-bold text-[#1A3263]">
+                                <h2 className="mt-1 text-xl leading-tight font-bold text-[#1A3263] sm:text-[26px]">
                                     {detailItem.nama_alat}
                                 </h2>
                             </div>
                             <button
                                 type="button"
                                 onClick={closeDetailModal}
-                                className="text-sm font-semibold text-[#1A3263] underline"
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#E8E2DB] bg-[#F8FAFC] text-[#1A3263] transition hover:bg-[#E8E2DB]"
+                                aria-label="Tutup detail buku"
                             >
-                                Tutup
+                                <X className="h-4 w-4" />
                             </button>
                         </div>
-                        {detailItem.gambar_url ? (
-                            <div className="border-b border-[#E8E2DB]">
-                                <img
-                                    src={detailItem.gambar_url}
-                                    alt={detailItem.nama_alat}
-                                    className="h-60 w-full object-cover"
-                                />
-                            </div>
-                        ) : null}
-                        <div className="space-y-4 p-6 text-sm text-[#1A3263]">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <p>
-                                    <span className="font-semibold">
-                                        Kode Buku:
-                                    </span>{' '}
-                                    {detailItem.kode_alat ?? '-'}
-                                </p>
-                                <p>
-                                    <span className="font-semibold">Stok:</span>{' '}
-                                    {detailItem.stok ?? 0} unit
-                                </p>
-                                <p>
-                                    <span className="font-semibold">
-                                        Kondisi:
-                                    </span>{' '}
-                                    {detailItem.kondisi_alat ?? '-'}
-                                </p>
-                                <p>
-                                    <span className="font-semibold">
-                                        Status:
-                                    </span>{' '}
-                                    <span
-                                        className={
-                                            statusStyles[detailItem.status]
-                                        }
-                                    >
-                                        {statusLabels[detailItem.status]}
-                                    </span>
-                                </p>
-                            </div>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <p>
-                                    <span className="font-semibold">
-                                        Kategori Buku:
-                                    </span>{' '}
-                                    {detailItem.kategori_alat ?? '-'}
-                                </p>
-                                <p>
-                                    <span className="font-semibold">
-                                        Ruangan:
-                                    </span>{' '}
-                                    {detailItem.ruangan}
-                                </p>
-                                <p>
-                                    <span className="font-semibold">
-                                        Denda / Hari:
-                                    </span>{' '}
-                                    {formatCurrency(
-                                        detailItem.denda_keterlambatan,
+                        <div className="grid gap-0 lg:grid-cols-[0.62fr_1.38fr]">
+                            <div className="flex items-center bg-[#F5F1EA] p-4 sm:p-5">
+                                <div className="w-full overflow-hidden rounded-[24px] border border-[#E8E2DB] bg-white shadow-[0_16px_40px_rgba(26,50,99,0.08)]">
+                                    {detailItem.gambar_url ? (
+                                        <img
+                                            src={detailItem.gambar_url}
+                                            alt={detailItem.nama_alat}
+                                            className="h-[230px] w-full object-cover sm:h-[270px] lg:h-[320px]"
+                                        />
+                                    ) : (
+                                        <div className="flex h-[230px] w-full flex-col items-center justify-center bg-[#E8DED3] px-8 text-center text-[#8E7661] sm:h-[270px] lg:h-[320px]">
+                                            <BookOpenText className="h-9 w-9" />
+                                            <p className="mt-4 text-xs font-semibold tracking-[0.25em] uppercase">
+                                                Cover Tidak Tersedia
+                                            </p>
+                                        </div>
                                     )}
-                                </p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="font-semibold">Deskripsi</p>
-                                <p className="mt-1 whitespace-pre-line text-[#1A3263]">
-                                    {detailItem.deskripsi ??
-                                        'Tidak ada deskripsi.'}
-                                </p>
+
+                            <div className="flex min-h-0 flex-col p-4 sm:p-5">
+                                <div className="grid min-h-0 gap-x-4 gap-y-3 overflow-hidden sm:grid-cols-3">
+                                    <DetailRow
+                                        icon={BookOpenText}
+                                        label="Kode Buku"
+                                        value={detailItem.kode_alat ?? '-'}
+                                    />
+                                    <DetailRow
+                                        icon={BookOpenText}
+                                        label="Stok"
+                                        value={`${detailItem.stok ?? 0} unit`}
+                                    />
+                                    <DetailRow
+                                        icon={Tag}
+                                        label="Kategori Buku"
+                                        value={detailItem.kategori_alat ?? '-'}
+                                    />
+                                    <DetailRow
+                                        icon={MapPin}
+                                        label="Ruangan"
+                                        value={detailItem.ruangan}
+                                    />
+                                    <DetailRow
+                                        icon={Layers3}
+                                        label="Status"
+                                        value={statusLabels[detailItem.status]}
+                                    />
+                                    <DetailRow
+                                        icon={DollarSign}
+                                        label="Denda / Hari"
+                                        value={formatCurrency(
+                                            detailItem.denda_keterlambatan,
+                                        )}
+                                    />
+                                    <DetailRow
+                                        icon={FileText}
+                                        label="Kondisi Buku"
+                                        value={detailItem.kondisi_alat ?? '-'}
+                                    />
+                                    <DetailRow
+                                        icon={CalendarDays}
+                                        label="Ditambahkan Pada"
+                                        value={
+                                            detailItem.created_at
+                                                ? formatDate(
+                                                      detailItem.created_at,
+                                                  )
+                                                : '-'
+                                        }
+                                    />
+                                </div>
+
+                                <div className="mt-4 rounded-[22px] border border-[#E8E2DB] bg-[#F8FAFC] p-3">
+                                    <p className="text-[11px] font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                        Deskripsi Buku
+                                    </p>
+                                    <p className="mt-2 text-[13px] leading-5 text-[#1A3263]">
+                                        {detailItem.deskripsi ??
+                                            'Tidak ada deskripsi.'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

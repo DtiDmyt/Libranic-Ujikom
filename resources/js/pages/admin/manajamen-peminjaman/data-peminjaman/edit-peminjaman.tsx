@@ -395,29 +395,6 @@ export default function AdminEditPeminjamanPage() {
                                 ) : null}
                             </div>
                         </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-[#1A3263]">
-                                Deskripsi Keperluan Peminjaman *
-                            </label>
-                            <textarea
-                                rows={5}
-                                value={form.data.keterangan_pinjam}
-                                onChange={(event) =>
-                                    form.setData(
-                                        'keterangan_pinjam',
-                                        event.target.value,
-                                    )
-                                }
-                                className="w-full rounded-2xl border border-[#D7DFEE] bg-[#F8FAFC] px-4 py-2 text-sm text-[#1A3263] focus:border-[#1A3263] focus:bg-white focus:outline-none"
-                                placeholder="Perbarui tujuan penggunaan atau catatan tambahan"
-                            />
-                            {form.errors.keterangan_pinjam ? (
-                                <p className="text-xs text-red-600">
-                                    {form.errors.keterangan_pinjam}
-                                </p>
-                            ) : null}
-                        </div>
                     </div>
 
                     <div className="space-y-6">
