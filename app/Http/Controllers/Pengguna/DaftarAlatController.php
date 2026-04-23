@@ -38,7 +38,7 @@ class DaftarAlatController extends Controller
             })
             ->values();
 
-        return Inertia::render('pengguna/daftar-alat/daftar-alat', [
+        return Inertia::render('pengguna/daftar-buku/daftar-alat', [
             'items' => $items,
         ]);
     }

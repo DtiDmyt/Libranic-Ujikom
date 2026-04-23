@@ -9,6 +9,8 @@ use App\Models\Pengembalian;
 use App\Models\Peminjaman;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -19,6 +21,9 @@ use Inertia\Response;
 
 class PeminjamanController extends Controller
 {
+    private const MAX_EXTENSION_COUNT = 3;
+    private const EXTENSION_STEP_DAYS = 7;
+
     public function index(Request $request): Response
     {
         $user = $request->user();
@@ -46,18 +51,31 @@ class PeminjamanController extends Controller
         }
 
         $items = $query->latest('created_at')->get()->map(function (Peminjaman $loan) {
+            $normalizedStatus = $this->normalizeLoanStatus($loan->status);
+            $extensionCount = (int) ($loan->perpanjangan_count ?? 0);
+
             return [
                 'id' => $loan->id,
                 'nama_alat' => $loan->alat?->nama_alat ?? '-',
                 'kode_alat' => $loan->alat?->kode_alat ?? '-',
-                'jumlah' => $loan->jumlah_pinjam,
+                'peminjam' => $loan->nama_peminjam ?? '-',
                 'kelas' => $loan->kelas ?? '-',
+                'jumlah' => $loan->jumlah_pinjam,
                 'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
                 'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
                 'keperluan' => $loan->keperluan,
-                'status' => $loan->status,
+                'status' => $normalizedStatus,
                 'denda_per_hari' => $loan->denda_per_hari ?? 0,
                 'alasan_penolakan' => $loan->alasan_penolakan,
+                'perpanjangan_count' => $extensionCount,
+                'max_extensions' => self::MAX_EXTENSION_COUNT,
+                'can_extend' => $normalizedStatus === 'disetujui' && $extensionCount < self::MAX_EXTENSION_COUNT,
+                'can_delete' => $normalizedStatus === 'menunggu',
+                'detail_url' => route('peminjaman.detail', $loan, false),
+                'edit_url' => route('peminjaman.edit', $loan, false),
+                'update_url' => route('peminjaman.update', $loan, false),
+                'delete_url' => route('peminjaman.destroy', $loan, false),
+                'return_url' => route('peminjaman.pengembalian.create', $loan, false),
             ];
         })->values()->all();
 
@@ -74,7 +92,128 @@ class PeminjamanController extends Controller
                 'status' => $statusFilter,
             ],
             'statusOptions' => $statusOptions,
+            'maxExtensions' => self::MAX_EXTENSION_COUNT,
         ]);
+    }
+
+    public function show(Request $request, Peminjaman $loan): Response
+    {
+        $this->authorizeLoanOwner($request, $loan);
+
+        return Inertia::render('pengguna/peminjaman/detail-peminjaman', [
+            'loan' => $this->loanPayload($loan),
+        ]);
+    }
+
+    public function edit(Request $request, Peminjaman $loan): Response
+    {
+        $this->authorizeLoanOwner($request, $loan);
+
+        abort_unless($this->canExtendLoan($loan), 403);
+
+        return Inertia::render('pengguna/peminjaman/edit-peminjaman', [
+            'loan' => $this->loanPayload($loan),
+        ]);
+    }
+
+    public function update(Request $request, Peminjaman $loan): RedirectResponse
+    {
+        $this->authorizeLoanOwner($request, $loan);
+        $loan->loadMissing('alat');
+
+        if (!$this->canExtendLoan($loan)) {
+            return Redirect::back()
+                ->withErrors([
+                    'tanggal_pengembalian' => 'Kamu hanya bisa memperpanjang peminjaman yang sudah disetujui sampai maksimal 3x.',
+                ])
+                ->withInput();
+        }
+
+        $currentReturnDate = $loan->tanggal_kembali?->toDateString();
+        if ($currentReturnDate === null) {
+            return Redirect::back()
+                ->withErrors([
+                    'tanggal_pengembalian' => 'Tanggal pengembalian saat ini tidak valid.',
+                ])
+                ->withInput();
+        }
+
+        $newReturnDate = $loan->tanggal_kembali
+            ? $loan->tanggal_kembali->copy()->addDays(self::EXTENSION_STEP_DAYS)->toDateString()
+            : null;
+
+        if ($newReturnDate === null) {
+            return Redirect::back()
+                ->withErrors([
+                    'tanggal_pengembalian' => 'Tanggal pengembalian baru tidak bisa dihitung.',
+                ])
+                ->withInput();
+        }
+
+        $extensionCount = (int) ($loan->perpanjangan_count ?? 0) + 1;
+
+        $loan->forceFill([
+            'tanggal_kembali' => $newReturnDate,
+            'perpanjangan_count' => $extensionCount,
+        ])->save();
+
+        ActivityLog::record(
+            $request->user()?->id,
+            sprintf(
+                'memperpanjang peminjaman %s selama %d hari sampai %s.',
+                $loan->alat?->nama_alat ?? 'alat',
+                self::EXTENSION_STEP_DAYS,
+                Carbon::parse($newReturnDate)->translatedFormat('d F Y')
+            ),
+            [
+                'context' => 'perpanjangan_peminjaman',
+                'loan_id' => $loan->id,
+                'alat_id' => $loan->alat?->id,
+                'alat_nama' => $loan->alat?->nama_alat,
+                'previous_return_date' => $currentReturnDate,
+                'new_return_date' => $newReturnDate,
+                'perpanjangan_count' => $extensionCount,
+                'extension_step_days' => self::EXTENSION_STEP_DAYS,
+            ]
+        );
+
+        return Redirect::route('peminjaman.daftar')
+            ->with('success', 'Peminjaman berhasil diperpanjang 7 hari.');
+    }
+
+    public function destroy(Request $request, Peminjaman $loan): JsonResponse
+    {
+        $this->authorizeLoanOwner($request, $loan);
+        $loan->loadMissing('alat');
+
+        if (!$this->isAwaitingApproval($loan->status)) {
+            return response()->json([
+                'message' => 'km tidak bisa menghapus karena sudah di konfirmasi oleh admin',
+            ], 422);
+        }
+
+        $tool = $loan->alat;
+        $amount = (int) ($loan->jumlah_pinjam ?? 0);
+
+        if ($tool && $amount > 0) {
+            $tool->releaseStock($amount);
+        }
+
+        ActivityLog::record(
+            $request->user()?->id,
+            sprintf('membatalkan pengajuan peminjaman %s.', $loan->alat?->nama_alat ?? 'alat'),
+            [
+                'context' => 'hapus_peminjaman',
+                'loan_id' => $loan->id,
+                'alat_id' => $loan->alat?->id,
+                'alat_nama' => $loan->alat?->nama_alat,
+                'jumlah' => $amount,
+            ]
+        );
+
+        $loan->delete();
+
+        return response()->json(['status' => 'ok']);
     }
 
     public function create(Request $request): Response
@@ -345,5 +484,72 @@ class PeminjamanController extends Controller
             'ditolak' => 'Ditolak',
             default => 'Proses Pengecekan',
         };
+    }
+
+    private function normalizeLoanStatus(?string $status): string
+    {
+        if (! $status) {
+            return 'menunggu';
+        }
+
+        $normalized = strtolower(trim($status));
+
+        if ($normalized === 'menunggu persetujuan' || $normalized === 'pending') {
+            return 'menunggu';
+        }
+
+        return $normalized;
+    }
+
+    private function authorizeLoanOwner(Request $request, Peminjaman $loan): void
+    {
+        abort_unless($loan->user_id === $request->user()?->id, 403);
+    }
+
+    private function canExtendLoan(Peminjaman $loan): bool
+    {
+        return $this->normalizeLoanStatus($loan->status) === 'disetujui'
+            && (int) ($loan->perpanjangan_count ?? 0) < self::MAX_EXTENSION_COUNT;
+    }
+
+    private function isAwaitingApproval(?string $status): bool
+    {
+        return $this->normalizeLoanStatus($status) === 'menunggu';
+    }
+
+    private function loanPayload(Peminjaman $loan): array
+    {
+        $loan->loadMissing(['alat', 'pengembalian']);
+
+        $normalizedStatus = $this->normalizeLoanStatus($loan->status);
+        $extensionCount = (int) ($loan->perpanjangan_count ?? 0);
+
+        return [
+            'id' => $loan->id,
+            'nama_alat' => $loan->alat?->nama_alat ?? '-',
+            'kode_alat' => $loan->alat?->kode_alat ?? '-',
+            'lokasi' => $loan->alat?->ruangan ?? '-',
+            'nama_peminjam' => $loan->nama_peminjam ?? '-',
+            'nis_nip' => $loan->nis_nip ?? '-',
+            'kelas' => $loan->kelas ?? '-',
+            'jumlah' => $loan->jumlah_pinjam,
+            'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
+            'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
+            'keperluan' => $loan->keperluan,
+            'status' => $normalizedStatus,
+            'denda_per_hari' => $loan->denda_per_hari ?? 0,
+            'perpanjangan_count' => $extensionCount,
+            'max_extensions' => self::MAX_EXTENSION_COUNT,
+            'remaining_extensions' => max(0, self::MAX_EXTENSION_COUNT - $extensionCount),
+            'extension_step_days' => self::EXTENSION_STEP_DAYS,
+            'next_return_date' => $loan->tanggal_kembali?->copy()->addDays(self::EXTENSION_STEP_DAYS)->toDateString(),
+            'can_extend' => $this->canExtendLoan($loan),
+            'can_delete' => $this->isAwaitingApproval($loan->status),
+            'detail_url' => route('peminjaman.detail', $loan, false),
+            'edit_url' => route('peminjaman.edit', $loan, false),
+            'update_url' => route('peminjaman.update', $loan, false),
+            'delete_url' => route('peminjaman.destroy', $loan, false),
+            'return_url' => route('peminjaman.pengembalian.create', $loan, false),
+        ];
     }
 }

@@ -3,20 +3,38 @@ import { usePagination } from '@/hooks/use-pagination';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useCallback, useEffect, useState } from 'react';
-import { Plus, Eye, Send } from 'lucide-react';
+import axios from 'axios';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type MouseEvent,
+} from 'react';
+import { Eye, PencilLine, Plus, Send, Trash2 } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 type LoanRow = {
     id: number;
     nama_alat: string;
     kode_alat: string;
+    peminjam: string;
+    kelas: string;
     jumlah: number;
     tanggal_pinjam?: string;
     tanggal_kembali?: string;
     status: string;
-    keperluan: string;
     denda_per_hari: number;
     alasan_penolakan?: string | null;
+    perpanjangan_count?: number;
+    max_extensions: number;
+    can_extend?: boolean;
+    can_delete?: boolean;
+    detail_url: string;
+    edit_url: string;
+    update_url: string;
+    delete_url: string;
+    return_url: string;
 };
 
 type StatusOption = {
@@ -31,6 +49,7 @@ type PageProps = SharedData & {
         status?: string;
     };
     statusOptions: StatusOption[];
+    maxExtensions: number;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -63,14 +82,27 @@ const statusStyles: Record<string, string> = {
 
 export default function PenggunaDaftarPeminjamanPage() {
     const { items, filters, statusOptions } = usePage<PageProps>().props;
+    const [localItems, setLocalItems] = useState(items);
+    const [detailLoan, setDetailLoan] = useState<LoanRow | null>(null);
     const statusFilter = filters.status ?? 'semua';
     const [searchTerm, setSearchTerm] = useState(filters.search ?? '');
 
     useEffect(() => {
         setSearchTerm(filters.search ?? '');
-    }, [filters.search]);
+        setLocalItems(items);
+    }, [filters.search, items]);
 
-    const hasRejectedItem = items.some((item) => item.status === 'ditolak');
+    const hasRejectedItem = localItems.some(
+        (item) => item.status === 'ditolak',
+    );
+
+    const visibleItems = useMemo(() => {
+        if (statusFilter === 'semua') {
+            return localItems;
+        }
+
+        return localItems.filter((item) => item.status === statusFilter);
+    }, [localItems, statusFilter]);
 
     const {
         paginatedItems,
@@ -85,7 +117,7 @@ export default function PenggunaDaftarPeminjamanPage() {
         goToPage,
         nextPage,
         prevPage,
-    } = usePagination(items, 10);
+    } = usePagination(visibleItems, 10);
 
     const visitWithFilters = useCallback(
         (overrides?: Partial<{ search: string; status: string }>) => {
@@ -128,6 +160,64 @@ export default function PenggunaDaftarPeminjamanPage() {
         },
         {},
     );
+
+    const handleEditClick = (event: MouseEvent<Element>, item: LoanRow) => {
+        if (item.can_extend) {
+            return;
+        }
+
+        event.preventDefault();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Perpanjangan belum tersedia',
+            text: `Kamu hanya bisa memperpanjang peminjaman yang sudah disetujui maksimal ${item.max_extensions}x.`,
+        });
+    };
+
+    const handleDelete = async (item: LoanRow) => {
+        if (!item.can_delete) {
+            Swal.fire(
+                'Tidak bisa dihapus',
+                'km tidak bisa menghapus karena sudah di konfirmasi oleh admin',
+                'warning',
+            );
+            return;
+        }
+
+        const confirmation = await Swal.fire({
+            title: 'Hapus Peminjaman',
+            text: 'Yakin ingin menghapus data ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'Hapus',
+            cancelButtonText: 'Batal',
+        });
+
+        if (!confirmation.isConfirmed) {
+            return;
+        }
+
+        try {
+            await axios.delete(item.delete_url);
+            setLocalItems((prev) => prev.filter((loan) => loan.id !== item.id));
+            Swal.fire(
+                'Berhasil',
+                'Peminjaman berhasil dihapus dan stok buku sudah kembali.',
+                'success',
+            );
+        } catch (error) {
+            const message = axios.isAxiosError(error)
+                ? ((error.response?.data?.message as string | undefined) ??
+                  'Tidak dapat menghapus peminjaman.')
+                : 'Tidak dapat menghapus peminjaman.';
+
+            Swal.fire('Gagal', message, 'error');
+        }
+    };
+
+    const closeDetailLoan = () => setDetailLoan(null);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -230,15 +320,51 @@ export default function PenggunaDaftarPeminjamanPage() {
                                         {/* AKSI */}
                                         <td className="px-4 py-4">
                                             <div className="flex items-center gap-2">
-                                                <Link
-                                                    href={`/peminjaman/${item.id}`}
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setDetailLoan(item)
+                                                    }
                                                     title="Detail"
+                                                    aria-label="Detail"
                                                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] text-[#1A3263] transition hover:bg-[#EEF2FF]"
                                                 >
                                                     <Eye className="h-4 w-4" />
-                                                </Link>
+                                                </button>
                                                 <Link
-                                                    href={`/peminjaman/${item.id}/pengembalian`}
+                                                    href={item.edit_url}
+                                                    onClick={(event) =>
+                                                        handleEditClick(
+                                                            event,
+                                                            item,
+                                                        )
+                                                    }
+                                                    title="Edit perpanjangan"
+                                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                                                        item.can_extend
+                                                            ? 'border border-[#1A3263] text-[#1A3263] hover:bg-[#EEF3FF]'
+                                                            : 'cursor-not-allowed border border-slate-200 text-slate-400'
+                                                    }`}
+                                                >
+                                                    <PencilLine className="h-4 w-4" />
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleDelete(item)
+                                                    }
+                                                    title="Hapus"
+                                                    aria-label="Hapus"
+                                                    className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition ${
+                                                        item.can_delete
+                                                            ? 'border border-[#FEE2E2] text-[#B91C1C] hover:bg-[#FEE2E2]'
+                                                            : 'cursor-not-allowed border border-slate-200 text-slate-400'
+                                                    }`}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                                <Link
+                                                    href={item.return_url}
                                                     title="Pengembalian"
                                                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E0E7FF] text-[#1A3263] transition hover:bg-[#EEF2FF]"
                                                 >
@@ -340,6 +466,136 @@ export default function PenggunaDaftarPeminjamanPage() {
                         />
                     </div>
                 </div>
+
+                {detailLoan ? (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                        <div
+                            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            onClick={closeDetailLoan}
+                        />
+                        <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+                            <div className="flex items-center justify-between border-b border-[#E8E2DB] px-6 py-4">
+                                <div>
+                                    <p className="text-xs font-semibold tracking-[0.25em] text-[#547792] uppercase">
+                                        Detail Peminjaman
+                                    </p>
+                                    <h2 className="text-xl font-bold text-[#1A3263]">
+                                        {detailLoan.nama_alat}
+                                    </h2>
+                                    <p className="text-xs text-[#547792]">
+                                        {detailLoan.kode_alat}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span
+                                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                            statusStyles[detailLoan.status] ??
+                                            statusStyles.default
+                                        }`}
+                                    >
+                                        {statusLabelMap[detailLoan.status] ??
+                                            'Menunggu'}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={closeDetailLoan}
+                                        className="text-sm font-semibold text-[#1A3263] underline"
+                                    >
+                                        Tutup
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 p-6 text-sm text-[#1A3263]">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="rounded-2xl bg-[#FBF8F4] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Peminjam
+                                        </p>
+                                        <p className="mt-2 font-semibold">
+                                            {detailLoan.peminjam}
+                                        </p>
+                                        <p className="text-xs text-[#547792]">
+                                            {detailLoan.kelas}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl bg-[#FBF8F4] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Tanggal Pinjam
+                                        </p>
+                                        <p className="mt-2 font-semibold text-[#1A3263]">
+                                            {formatDateLabel(
+                                                detailLoan.tanggal_pinjam,
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl bg-[#FBF8F4] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Buku
+                                        </p>
+                                        <p className="mt-2 font-semibold">
+                                            {detailLoan.nama_alat}
+                                        </p>
+                                        <p className="text-xs text-[#547792]">
+                                            {detailLoan.kode_alat}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl bg-[#FBF8F4] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Tanggal Kembali
+                                        </p>
+                                        <p className="mt-2 font-semibold">
+                                            {formatDateLabel(
+                                                detailLoan.tanggal_kembali,
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4 md:grid-cols-3">
+                                    <div className="rounded-2xl bg-[#F8FAFC] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Jumlah
+                                        </p>
+                                        <p className="mt-2 font-semibold">
+                                            {detailLoan.jumlah} unit
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl bg-[#F8FAFC] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Denda / Hari
+                                        </p>
+                                        <p className="mt-2 font-semibold">
+                                            {currencyFormatter.format(
+                                                detailLoan.denda_per_hari ?? 0,
+                                            )}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-2xl bg-[#F8FAFC] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
+                                            Perpanjangan
+                                        </p>
+                                        <p className="mt-2 font-semibold">
+                                            {detailLoan.perpanjangan_count ?? 0}
+                                            /{detailLoan.max_extensions} kali
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {detailLoan.alasan_penolakan ? (
+                                    <div className="rounded-2xl border border-[#FEE2E2] bg-[#FFF5F5] p-4">
+                                        <p className="text-xs font-semibold tracking-[0.2em] text-[#991B1B] uppercase">
+                                            Alasan Penolakan
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 text-[#7F1D1D]">
+                                            {detailLoan.alasan_penolakan}
+                                        </p>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </AppLayout>
     );

@@ -39,10 +39,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
             Route::get('/', [PenggunaPeminjamanController::class, 'index'])->name('index');
             Route::get('daftar-peminjaman', [PenggunaPeminjamanController::class, 'index'])->name('daftar');
-            Route::get('riwayat-peminjaman/{loan}', [PenggunaPeminjamanController::class, 'showRiwayat'])->name('riwayat.detail');
-            Route::get('riwayat-peminjaman', [PenggunaPeminjamanController::class, 'riwayat'])->name('riwayat');
             Route::get('form', [PenggunaPeminjamanController::class, 'create'])->name('form');
             Route::post('form', [PenggunaPeminjamanController::class, 'store'])->name('form.store');
+            Route::get('riwayat-peminjaman/{loan}', [PenggunaPeminjamanController::class, 'showRiwayat'])->name('riwayat.detail');
+            Route::get('riwayat-peminjaman', [PenggunaPeminjamanController::class, 'riwayat'])->name('riwayat');
+            Route::get('{loan}', [PenggunaPeminjamanController::class, 'show'])->name('detail');
+            Route::get('{loan}/edit', [PenggunaPeminjamanController::class, 'edit'])->name('edit');
+            Route::patch('{loan}', [PenggunaPeminjamanController::class, 'update'])->name('update');
+            Route::delete('{loan}', [PenggunaPeminjamanController::class, 'destroy'])->name('destroy');
             Route::get('{loan}/pengembalian', [PengembalianController::class, 'create'])->name('pengembalian.create');
             Route::post('{loan}/pengembalian', [PengembalianController::class, 'store'])->name('pengembalian.store');
         });

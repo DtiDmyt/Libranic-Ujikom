@@ -28,6 +28,7 @@ class Peminjaman extends Model
         'keperluan',
         'status',
         'denda_per_hari',
+        'perpanjangan_count',
         'alasan_penolakan',
     ];
 
@@ -36,6 +37,7 @@ class Peminjaman extends Model
         'tanggal_pinjam' => 'date',
         'tanggal_kembali' => 'date',
         'denda_per_hari' => 'integer',
+        'perpanjangan_count' => 'integer',
     ];
 
     public function alat(): BelongsTo
