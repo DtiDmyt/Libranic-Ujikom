@@ -105,12 +105,12 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                         subItems: [
                             {
                                 title: 'Daftar Buku',
-                                href: '/admin/alat/data',
+                                href: '/admin/buku/data',
                                 icon: LibrarySquare,
                             },
                             {
                                 title: 'Kategori Buku',
-                                href: '/admin/alat/kategori',
+                                href: '/admin/buku/kategori',
                                 icon: FolderTree,
                             },
                         ],
@@ -170,7 +170,7 @@ const sidebarConfigs: Record<string, SidebarConfig> = {
                     },
                     {
                         title: 'Daftar Buku',
-                        href: '/daftar-alat',
+                        href: '/daftar-buku',
                         icon: LibrarySquare,
                     },
                     {

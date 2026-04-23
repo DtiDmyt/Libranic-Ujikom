@@ -105,7 +105,7 @@ class DaftarBarangController extends Controller
         DaftarBarang::create($data);
 
         return redirect()
-            ->route('admin.alat.data.index')
+            ->route('admin.buku.data.index')
             ->with('success', 'Data alat berhasil ditambahkan.');
     }
 
@@ -167,7 +167,7 @@ class DaftarBarangController extends Controller
         $daftarBarang->update($data);
 
         return redirect()
-            ->route('admin.alat.data.index')
+            ->route('admin.buku.data.index')
             ->with('success', 'Data alat berhasil diperbarui.');
     }
 
@@ -177,7 +177,7 @@ class DaftarBarangController extends Controller
         $daftarBarang->delete();
 
         return redirect()
-            ->route('admin.alat.data.index')
+            ->route('admin.buku.data.index')
             ->with('success', 'Data alat berhasil dihapus.');
     }
 
@@ -190,7 +190,7 @@ class DaftarBarangController extends Controller
         DaftarBarang::whereIn('id', $items->pluck('id'))->delete();
 
         return redirect()
-            ->route('admin.alat.data.index')
+            ->route('admin.buku.data.index')
             ->with('success', 'Data alat terpilih berhasil dihapus.');
     }
 
@@ -200,7 +200,7 @@ class DaftarBarangController extends Controller
             ->update(['status' => $request->validated('status')]);
 
         return redirect()
-            ->route('admin.alat.data.index')
+            ->route('admin.buku.data.index')
             ->with('success', 'Status data alat berhasil diperbarui.');
     }
 

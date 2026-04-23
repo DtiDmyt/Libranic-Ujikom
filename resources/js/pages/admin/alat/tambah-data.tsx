@@ -48,9 +48,9 @@ const statusOptions: { value: StatusBuku; label: string }[] = [
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Buku', href: '/admin/alat' },
-    { title: 'Daftar Buku', href: '/admin/alat/data' },
-    { title: 'Tambah Data', href: '/admin/alat/data/tambah' },
+    { title: 'Manajemen Buku', href: '/admin/buku' },
+    { title: 'Daftar Buku', href: '/admin/buku/data' },
+    { title: 'Tambah Data', href: '/admin/buku/data/tambah' },
 ];
 
 export default function AdminTambahDataAlatPage() {
@@ -95,7 +95,7 @@ export default function AdminTambahDataAlatPage() {
 
     const handleSubmit = () => {
         alertLoading('Sedang menyimpan data buku...');
-        form.post('/admin/alat/data', {
+        form.post('/admin/buku/data', {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -142,7 +142,7 @@ export default function AdminTambahDataAlatPage() {
                         </p>
                     </div>
                     <Link
-                        href="/admin/alat/data"
+                        href="/admin/buku/data"
                         className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                     >
                         <ArrowLeft className="h-4 w-4" /> Kembali
@@ -523,7 +523,7 @@ export default function AdminTambahDataAlatPage() {
                                 Simpan Data
                             </button>
                             <Link
-                                href="/admin/alat/data"
+                                href="/admin/buku/data"
                                 className="inline-flex flex-1 items-center justify-center rounded-2xl border border-[#E8E2DB] bg-white px-4 py-3 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                             >
                                 Batalkan

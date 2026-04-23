@@ -31,7 +31,7 @@ type PageProps = SharedData & {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard Pengguna', href: '/dashboard' },
-    { title: 'Daftar Buku', href: '/daftar-alat' },
+    { title: 'Daftar Buku', href: '/daftar-buku' },
 ];
 
 export default function PenggunaDaftarAlatPage({ items = [] }: PageProps) {

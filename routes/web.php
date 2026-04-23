@@ -34,7 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:peminjam')->group(function () {
         Route::get('dashboard', [PenggunaDashboardController::class, 'index'])->name('dashboard');
 
-        Route::get('daftar-alat', [DaftarAlatController::class, 'index'])->name('daftar-alat.index');
+        Route::get('daftar-buku', [DaftarAlatController::class, 'index'])->name('daftar-buku.index');
 
         Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
             Route::get('/', [PenggunaPeminjamanController::class, 'index'])->name('index');
@@ -53,12 +53,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('log-aktivitas', [LogAktivitasController::class, 'index'])->name('log-aktivitas.index');
 
-        Route::get('alat/kategori', [KategoriAlatController::class, 'index'])->name('kategori.index');
-        Route::post('alat/kategori', [KategoriAlatController::class, 'store'])->name('kategori.store');
-        Route::patch('alat/kategori/{kategoriAlat}', [KategoriAlatController::class, 'update'])->name('kategori.update');
-        Route::delete('alat/kategori/bulk-delete', [KategoriAlatController::class, 'bulkDestroy'])->name('kategori.bulk-destroy');
+        Route::get('buku/kategori', [KategoriAlatController::class, 'index'])->name('kategori.index');
+        Route::post('buku/kategori', [KategoriAlatController::class, 'store'])->name('kategori.store');
+        Route::patch('buku/kategori/{kategoriAlat}', [KategoriAlatController::class, 'update'])->name('kategori.update');
+        Route::delete('buku/kategori/bulk-delete', [KategoriAlatController::class, 'bulkDestroy'])->name('kategori.bulk-destroy');
 
-        Route::prefix('alat')->name('alat.')->group(function () {
+        Route::prefix('buku')->name('buku.')->group(function () {
             Route::get('data', [DaftarBarangController::class, 'index'])->name('data.index');
             Route::get('data/tambah', [DaftarBarangController::class, 'create'])->name('data.create');
             Route::post('data', [DaftarBarangController::class, 'store'])->name('data.store');

@@ -178,7 +178,7 @@ class PeminjamanController extends Controller
             ]
         );
 
-        return Redirect::route('daftar-alat.index')
+        return Redirect::route('daftar-buku.index')
             ->with('success', 'Permohonan peminjaman berhasil dikirim.');
     }
 

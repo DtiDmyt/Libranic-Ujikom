@@ -199,7 +199,7 @@ export default function PenggunaRiwayatPeminjamanPage() {
                 <div className="rounded-3xl border border-[#E8E2DB] bg-white shadow-sm">
                     <div className="border-b border-[#E8E2DB] px-6 py-5">
                         <Link
-                            href="/daftar-alat"
+                            href="/daftar-buku"
                             className="inline-flex items-center gap-2 rounded-full bg-[#1A3263] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#0F1D3A]"
                         >
                             <Plus className="h-4 w-4" /> Ajukan Peminjaman

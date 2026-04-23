@@ -31,7 +31,7 @@ export default function Login({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(store(), {
+        post(store().url, {
             onSuccess: () => {
                 Swal.fire({
                     icon: 'success',

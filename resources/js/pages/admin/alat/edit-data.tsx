@@ -67,9 +67,9 @@ const jurusanOptions = ['PPLG', 'ANM', 'BCF', 'TO', 'TPFL'];
 
 const breadcrumbs = (id: number): BreadcrumbItem[] => [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Buku', href: '/admin/alat' },
-    { title: 'Daftar Buku', href: '/admin/alat/data' },
-    { title: 'Edit Data', href: `/admin/alat/data/${id}/edit` },
+    { title: 'Manajemen Buku', href: '/admin/buku' },
+    { title: 'Daftar Buku', href: '/admin/buku/data' },
+    { title: 'Edit Data', href: `/admin/buku/data/${id}/edit` },
 ];
 
 export default function AdminEditDataAlatPage() {
@@ -110,7 +110,7 @@ export default function AdminEditDataAlatPage() {
     const handleSubmit = () => {
         alertLoading('Sedang memperbarui data buku...');
         form.transform((data) => ({ ...data, _method: 'patch' }));
-        form.post(`/admin/alat/data/${item.id}`, {
+        form.post(`/admin/buku/data/${item.id}`, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {
@@ -169,7 +169,7 @@ export default function AdminEditDataAlatPage() {
                         </p>
                     </div>
                     <Link
-                        href="/admin/alat/data"
+                        href="/admin/buku/data"
                         className="inline-flex items-center gap-2 rounded-2xl border border-[#E8E2DB] bg-white px-4 py-2 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                     >
                         <ArrowLeft className="h-4 w-4" /> Kembali
@@ -588,7 +588,7 @@ export default function AdminEditDataAlatPage() {
                                 Simpan Perubahan
                             </button>
                             <Link
-                                href="/admin/alat/data"
+                                href="/admin/buku/data"
                                 className="inline-flex flex-1 items-center justify-center rounded-2xl border border-[#E8E2DB] bg-white px-4 py-3 text-sm font-semibold text-[#1A3263] transition hover:bg-[#F8F6F1]"
                             >
                                 Batalkan

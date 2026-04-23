@@ -55,8 +55,8 @@ type PageProps = SharedData & {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Buku', href: '/admin/alat' },
-    { title: 'Daftar Buku', href: '/admin/alat/data' },
+    { title: 'Manajemen Buku', href: '/admin/buku' },
+    { title: 'Daftar Buku', href: '/admin/buku/data' },
 ];
 
 const statusLabels: Record<Status, string> = {
@@ -139,7 +139,7 @@ export default function AdminDataAlatPage() {
             query.kategori = kategoriValue;
         }
 
-        router.get('/admin/alat/data', query, {
+        router.get('/admin/buku/data', query, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
@@ -179,7 +179,7 @@ export default function AdminDataAlatPage() {
             if (!result.isConfirmed) return;
 
             alertLoading('Sedang menghapus data terpilih...');
-            router.delete('/admin/alat/data/bulk-delete', {
+            router.delete('/admin/buku/data/bulk-delete', {
                 data: { ids: selected },
                 preserveScroll: true,
                 onSuccess: () => {
@@ -200,7 +200,7 @@ export default function AdminDataAlatPage() {
 
         alertLoading('Sedang memperbarui status data terpilih...');
         router.patch(
-            '/admin/alat/data/bulk-status',
+            '/admin/buku/data/bulk-status',
             {
                 ids: selected,
                 status,
@@ -234,7 +234,7 @@ export default function AdminDataAlatPage() {
             if (!result.isConfirmed) return;
 
             alertLoading('Sedang menghapus data...');
-            router.delete(`/admin/alat/data/${id}`, {
+            router.delete(`/admin/buku/data/${id}`, {
                 preserveScroll: true,
                 onSuccess: () => {
                     setSelected((prev) => prev.filter((item) => item !== id));
@@ -276,7 +276,7 @@ export default function AdminDataAlatPage() {
                     <div className="space-y-4 border-b border-[#E8E2DB] p-6">
                         <div className="flex flex-wrap items-center gap-3">
                             <Link
-                                href="/admin/alat/data/tambah"
+                                href="/admin/buku/data/tambah"
                                 className="inline-flex items-center gap-2 rounded-xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#547792]"
                             >
                                 <Plus className="h-4 w-4" /> Tambah
@@ -449,7 +449,7 @@ export default function AdminDataAlatPage() {
                                                     <Eye className="h-4 w-4" />
                                                 </button>
                                                 <Link
-                                                    href={`/admin/alat/data/${item.id}/edit`}
+                                                    href={`/admin/buku/data/${item.id}/edit`}
                                                     title="Edit"
                                                     aria-label="Edit"
                                                     className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#1A3263] text-[#1A3263] transition hover:bg-[#EEF3FF]"

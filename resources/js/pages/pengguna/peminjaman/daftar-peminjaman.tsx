@@ -151,7 +151,7 @@ export default function PenggunaDaftarPeminjamanPage() {
                     {/* tombol pindah ke kiri */}
                     <div className="border-b border-[#E8E2DB] p-6">
                         <Link
-                            href="/daftar-alat"
+                            href="/daftar-buku"
                             className="inline-flex items-center gap-2 rounded-2xl bg-[#1A3263] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#1A3263]/30 transition hover:bg-[#172550]"
                         >
                             <Plus className="h-4 w-4" />

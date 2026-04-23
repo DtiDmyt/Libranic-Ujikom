@@ -17,8 +17,8 @@ import {
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Admin Dashboard', href: adminRoutes.dashboard().url },
-    { title: 'Manajemen Buku', href: '/admin/alat' },
-    { title: 'Kategori Buku', href: '/admin/alat/kategori' },
+    { title: 'Manajemen Buku', href: '/admin/buku' },
+    { title: 'Kategori Buku', href: '/admin/buku/kategori' },
 ];
 
 type CategoryRow = {
@@ -75,7 +75,7 @@ export default function AdminKategoriAlatPage() {
     const submitForm = () => {
         if (editingId) {
             alertLoading('Sedang memperbarui kategori...');
-            form.patch(`/admin/alat/kategori/${editingId}`, {
+            form.patch(`/admin/buku/kategori/${editingId}`, {
                 preserveScroll: true,
                 onSuccess: () => {
                     form.reset();
@@ -92,7 +92,7 @@ export default function AdminKategoriAlatPage() {
             });
         } else {
             alertLoading('Sedang menambahkan kategori...');
-            form.post('/admin/alat/kategori', {
+            form.post('/admin/buku/kategori', {
                 preserveScroll: true,
                 onSuccess: () => {
                     form.reset();
@@ -132,7 +132,7 @@ export default function AdminKategoriAlatPage() {
             }
 
             alertLoading('Sedang menghapus kategori terpilih...');
-            router.delete('/admin/alat/kategori/bulk-delete', {
+            router.delete('/admin/buku/kategori/bulk-delete', {
                 data: { ids: selected },
                 preserveScroll: true,
                 onSuccess: () => {
