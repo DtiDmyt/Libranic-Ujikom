@@ -67,6 +67,11 @@ const statusConfig: Record<
         palette: 'bg-[#DCFCE7] text-[#065F46]',
         dot: 'bg-[#16A34A]',
     },
+    dikembalikan: {
+        label: 'Dikembalikan',
+        palette: 'bg-[#DBEAFE] text-[#1D4ED8]',
+        dot: 'bg-[#2563EB]',
+    },
     ditolak: {
         label: 'Ditolak',
         palette: 'bg-[#FEE2E2] text-[#991B1B]',

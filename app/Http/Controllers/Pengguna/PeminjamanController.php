@@ -363,6 +363,7 @@ class PeminjamanController extends Controller
                 'kelas' => $loan->kelas ?? '-',
                 'kode_alat' => $loan->alat?->kode_alat ?? '-',
                 'lokasi' => $loan->alat?->ruangan ?? '-',
+                'alasan_penolakan' => $loan->alasan_penolakan,
                 'pengembalian' => [
                     'kondisi' => $pengembalian?->kondisi,
                     'catatan' => $pengembalian?->catatan,
@@ -406,6 +407,7 @@ class PeminjamanController extends Controller
                 'tanggal_pinjam' => $loan->tanggal_pinjam?->toDateString(),
                 'tanggal_kembali' => $loan->tanggal_kembali?->toDateString(),
                 'denda_per_hari' => $loan->denda_per_hari ?? 0,
+                'alasan_penolakan' => $loan->alasan_penolakan,
             ],
             'pengembalian' => [
                 'tanggal_pengembalian' => $pengembalian?->tanggal_pengembalian?->toDateString(),

@@ -24,6 +24,7 @@ type LoanHistoryRow = {
     detail_url: string;
     late_days?: number;
     penalty?: number;
+    alasan_penolakan?: string | null;
     pengembalian?: {
         kondisi?: string | null;
         catatan?: string | null;
@@ -101,8 +102,12 @@ const formatDate = (value?: string | null) =>
 
 const resolveNote = (item: LoanHistoryRow): string => {
     const status = normalizeReturnStatus(item.return_status);
-    if (status === 'menunggu' || status === 'tepat waktu') {
+    if (status === 'menunggu') {
         return '-';
+    }
+
+    if (status === 'ditolak') {
+        return item.alasan_penolakan?.trim() || '-';
     }
 
     return item.pengembalian?.catatan_admin?.trim() || '-';

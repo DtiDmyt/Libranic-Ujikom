@@ -14,6 +14,7 @@ type DetailLoan = {
     tanggal_pinjam?: string | null;
     tanggal_kembali?: string | null;
     denda_per_hari?: number;
+    alasan_penolakan?: string | null;
 };
 
 type DetailReturn = {
@@ -46,14 +47,22 @@ const dateFormatter = new Intl.DateTimeFormat('id-ID', {
 const formatDate = (value?: string | null) =>
     value ? dateFormatter.format(new Date(value)) : '-';
 
-const resolveAdminNote = (status: string, note?: string | null) => {
+const resolveHistoryNote = (
+    status: string,
+    rejectionReason?: string | null,
+    adminNote?: string | null,
+) => {
     const normalizedStatus = status.toLowerCase().trim();
 
-    if (normalizedStatus === 'menunggu' || normalizedStatus === 'tepat waktu') {
+    if (normalizedStatus === 'menunggu') {
         return '-';
     }
 
-    return note?.trim() || '-';
+    if (normalizedStatus === 'ditolak') {
+        return rejectionReason?.trim() || '-';
+    }
+
+    return adminNote?.trim() || '-';
 };
 
 const statusConfig: Record<
@@ -181,11 +190,14 @@ export default function PenggunaDetailRiwayatPeminjamanPage() {
 
                         <div className="rounded-3xl border border-dashed border-[#D7DFEE] bg-[#F8FAFC] p-5">
                             <p className="text-xs font-semibold tracking-[0.2em] text-[#8E7661] uppercase">
-                                Catatan Admin
+                                {normalizedStatus === 'ditolak'
+                                    ? 'Alasan Penolakan'
+                                    : 'Catatan Admin'}
                             </p>
                             <p className="mt-2 text-sm leading-6 text-[#1A3263]">
-                                {resolveAdminNote(
+                                {resolveHistoryNote(
                                     normalizedStatus,
+                                    loan.alasan_penolakan,
                                     pengembalian.catatan_admin,
                                 )}
                             </p>
