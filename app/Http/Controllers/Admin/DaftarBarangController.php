@@ -62,7 +62,7 @@ class DaftarBarangController extends Controller
             'draft' => DaftarBarang::where('status', 'draft')->count(),
         ];
 
-        return Inertia::render('admin/alat/data', [
+        return Inertia::render('admin/buku/data', [
             'items' => $items,
             'filters' => $filters,
             'categories' => $categories,
@@ -74,7 +74,7 @@ class DaftarBarangController extends Controller
     {
         $categories = KategoriAlat::query()->orderBy('nama')->get(['id', 'nama']);
 
-        return Inertia::render('admin/alat/tambah-data', [
+        return Inertia::render('admin/buku/tambah-data', [
             'categories' => $categories,
             'kodePreviews' => $this->kodePreviewsByCategory($categories),
         ]);
@@ -113,7 +113,7 @@ class DaftarBarangController extends Controller
     {
         $categories = KategoriAlat::query()->orderBy('nama')->get(['id', 'nama']);
 
-        return Inertia::render('admin/alat/edit-data', [
+        return Inertia::render('admin/buku/edit-data', [
             'item' => [
                 'id' => $daftarBarang->id,
                 'judul_buku' => $daftarBarang->judul_buku ?? $daftarBarang->nama_alat,

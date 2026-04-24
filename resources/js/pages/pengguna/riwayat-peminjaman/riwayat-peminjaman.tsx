@@ -99,39 +99,13 @@ const formatDate = (value?: string | null) =>
           }).format(new Date(value))
         : '-';
 
-const currencyFormatter = new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-});
-
 const resolveNote = (item: LoanHistoryRow): string => {
     const status = normalizeReturnStatus(item.return_status);
-    const noteFromOfficer = item.pengembalian?.catatan_admin?.trim();
-
-    if (status === 'tepat waktu') {
+    if (status === 'menunggu' || status === 'tepat waktu') {
         return '-';
     }
 
-    if (status === 'telat') {
-        const penalty = item.penalty ?? 0;
-        const lateDays = item.late_days ?? 0;
-        if (penalty <= 0) {
-            return 'Tidak ada denda';
-        }
-
-        return `Denda ${currencyFormatter.format(penalty)}${lateDays > 0 ? ` (${lateDays} hari)` : ''}`;
-    }
-
-    if (status === 'rusak' || status === 'hilang') {
-        return noteFromOfficer || 'Catatan belum diisi';
-    }
-
-    if (status === 'ditolak') {
-        return item.pengembalian?.catatan?.trim() || 'Peminjaman ditolak';
-    }
-
-    return '-';
+    return item.pengembalian?.catatan_admin?.trim() || '-';
 };
 
 const statusFilterOptions = [

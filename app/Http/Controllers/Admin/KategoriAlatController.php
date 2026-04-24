@@ -19,7 +19,7 @@ class KategoriAlatController extends Controller
             ->orderBy('nama')
             ->get(['id', 'nama']);
 
-        return Inertia::render('admin/alat/kategori', [
+        return Inertia::render('admin/buku/kategori', [
             'categories' => $categories,
         ]);
     }
